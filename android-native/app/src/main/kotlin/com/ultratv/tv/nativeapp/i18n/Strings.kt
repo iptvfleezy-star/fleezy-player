@@ -23,1294 +23,1295 @@ enum class AppLang(val code: String, val displayName: String, val rtl: Boolean =
     }
 }
 
-data class Strings(
-    // Nav
-    val navHome: String,
-    val navLive: String,
-    val navGuide: String,
-    val navMovies: String,
-    val navSeries: String,
-    val navFavorites: String,
-    val navSearch: String,
-    val navCategories: String,
-    val navMultiview: String,
-    val navRecordings: String,
-    val navSettings: String,
-
-    // Home
-    val homeWelcome: String,
-    val homeSubtitle: String,
-    val homeContinueWatching: String,
-    val homeRecentlyWatched: String,
-    val homeFeaturedChannels: String,
-    val homeFeaturedMovies: String,
-    val homeFeaturedSeries: String,
-    val onboardingMacLabel: String,
-    val onboardingOpenSettings: String,
-    val onboardingFirstTime: String,
-    val onboardingTwoPaths: String,
-    val onboardingPathManual: String,
-    val onboardingPathCloud: String,
-
-    // Parental
-    val parentalPinEnabled: String,
-    val parentalPinNotSet: String,
-    val parentalSetPin: String,
-    val parentalChangePin: String,
-    val parentalClearPin: String,
-    val parentalManageLocked: String,
-    val parentalSetTitle: String,
-    val parentalPinHint: String,
-    val parentalConfirmHint: String,
-    val parentalLockedTitle: String,
-    val parentalEnterPin: String,
-    val parentalWrongPin: String,
-    val parentalUnlock: String,
-
-    // Categories management
-    val categoriesManage: String,
-    val categoriesFilterHint: String,
-    val categoriesHideAll: String,
-    val categoriesShowAll: String,
-    val categoriesHideAdult: String,
-    val categoriesResetAll: String,
-    val categoriesEmpty: String,
-    val categoriesShow: String,
-    val categoriesHide: String,
-    val categoriesCountTemplate: String,
-
-    // Onboarding wizard
-    val wizardWelcomeTitle: String,
-    val wizardAddProviderTitle: String,
-    val wizardDoneTitle: String,
-    val wizardStepTemplate: String,
-    val wizardIntro1: String,
-    val wizardIntro2: String,
-    val wizardTwoPaths: String,
-    val wizardPathManual: String,
-    val wizardPathCloud: String,
-    val wizardTipsHead: String,
-    val wizardTipDefault: String,
-    val wizardTipSleep: String,
-    val wizardTipLock: String,
-    val wizardTipBackup: String,
-    val wizardTipGuide: String,
-    val wizardBack: String,
-    val wizardNext: String,
-    val wizardAddProviderCta: String,
-    val wizardSkip: String,
-
-    // Locked channels screen
-    val lockChannelsTitle: String,
-    val lockChannelsSubtitle: String,
-    val lockChannelsFilterHint: String,
-    val lockChannelsLock: String,
-    val lockChannelsUnlock: String,
-
-    // Guide
-    val guideClickHint: String,
-    val guideLoadingEpg: String,
-    val guideProgrammesTemplate: String,
-    val guideLoading: String,
-    val guideRefreshXmltv: String,
-    val guideNoChannels: String,
-
-    // Add-provider dialogs
-    val addProviderAdd: String,
-    val addProviderXtreamTitle: String,
-    val addProviderM3uTitle: String,
-    val addProviderStalkerTitle: String,
-    val fieldNameOptional: String,
-    val fieldServerUrl: String,
-    val fieldUsername: String,
-    val fieldPassword: String,
-    val fieldPlaylistUrl: String,
-    val fieldPortalUrl: String,
-    val fieldDeviceMac: String,
-
-    // Settings screen sections
-    val settingsAutoImportTitle: String,
-    val settingsYourMac: String,
-    val settingsMacHint: String,
-    val settingsConfigPasswordLabel: String,
-    val settingsConfigPasswordNone: String,
-    val settingsSet: String,
-    val settingsSyncing: String,
-    val settingsSyncFromCloud: String,
-    val settingsAddProviderTitle: String,
-    val settingsAddProviderHint: String,
-    val settingsAddXtream: String,
-    val settingsAddM3uUrl: String,
-    val settingsAddM3uFile: String,
-    val settingsAddStalker: String,
-    val settingsConfiguredHeader: String,
-    val settingsNoneYet: String,
-    val settingsDefaultBadge: String,
-    val settingsSetDefault: String,
-    val settingsResync: String,
-    val settingsBackupTitle: String,
-    val settingsBackupHint: String,
-    val settingsBackupExport: String,
-    val settingsBackupImport: String,
-    val settingsParentalHint: String,
-    val settingsConfigPwdDialogTitle: String,
-    val settingsConfigPwdDialogHint: String,
-    val settingsConfigPwdFieldLabel: String,
-    val settingsConfigPwdFieldPlaceholder: String,
-    val settingsWorkerDialogTitle: String,
-    val settingsWorkerDialogHint: String,
-    val settingsWorkerFieldLabel: String,
-    val toastBackupSaved: String,
-    val toastSaveFailed: String,
-    val toastEmptyFile: String,
-    val toastConfigPasswordSaved: String,
-
-    // Preferences
-    val prefSidebar: String,
-    val prefTopBar: String,
-    val prefThemeDark: String,
-    val prefThemeAmoled: String,
-    val prefThemeBlue: String,
-    val prefDefaultPlayer: String,
-    val prefPlayerInternal: String,
-    val prefPlayerExternal: String,
-    val prefAutoSyncHint: String,
-    val prefShowChannelNumbers: String,
-    val prefShowChannelNumbersHint: String,
-    val prefHideAdult: String,
-    val prefHideAdultHint: String,
-    val prefResume: String,
-    val prefResumeHint: String,
-    val prefAutoPlayNext: String,
-    val prefAutoPlayNextHint: String,
-    val prefLaunchAtBoot: String,
-    val prefLaunchAtBootHint: String,
-    val prefAutoPlayLast: String,
-    val prefAutoPlayLastHint: String,
-    val prefIntervalLaunch: String,
-    val prefInterval6: String,
-    val prefInterval12: String,
-    val prefInterval24: String,
-
-    // Favorites + details + recordings + misc
-    val favoritesEmpty: String,
-    val favoritesMoviesSection: String,
-    val favoritesSeriesSection: String,
-    val detailLoading: String,
-    val seriesNoEpisodes: String,
-    val multiViewTitle: String,
-    val multiViewHint: String,
-    val multiViewPickTemplate: String,
-    val recordingsPlay: String,
-    val recordingsOpenWith: String,
-    val playerOff: String,
-    val playerAudioTemplate: String,
-    val playerSubtitlesTemplate: String,
-
-    // Live + browse
-    val liveAllChannels: String,
-    val liveChannelsCountTemplate: String,
-    val liveNoChannelsInCategory: String,
-    val liveZappingEyebrow: String,
-    val liveOnAirPill: String,
-    val liveThen: String,
-    val liveDayScheduleEyebrow: String,
-    val liveNoEpgForChannel: String,
-    val updateAvailableEyebrow: String,
-    val updateLater: String,
-    val updateInstall: String,
-    val updateDownloading: String,
-    val settingsTelemetryTitle: String,
-    val settingsTelemetryHint: String,
-    val settingsCheckForUpdates: String,
-    val settingsCheckingForUpdates: String,
-    val settingsUpToDateTemplate: String,
-    val settingsUpdateAvailableTemplate: String,
-    val backupEncryptHint: String,
-    val backupEncryptFieldLabel: String,
-    val backupEncryptFieldPlaceholder: String,
-    val railOther: String,
-    val open: String,
-
-    // Sleep timer + stats
-    val sleepLabel: String,
-    val sleepMin15: String,
-    val sleepMin30: String,
-    val sleep1h: String,
-    val sleep2h: String,
-    val sleepCancel: String,
-    val sleepReached: String,
-    val recordingQueuedTemplate: String,
-    val statResolution: String,
-    val statVideoCodec: String,
-    val statFrameRate: String,
-    val statVideoBitrate: String,
-    val statAudioCodec: String,
-    val statAudioChannels: String,
-    val statBuffered: String,
-    val statDroppedFrames: String,
-
-    // Backup + recording toasts
-    val toastBackupReady: String,
-    val toastRestoredTemplate: String,
-    val toastRestoreFailed: String,
-    val toastRecordingQueued: String,
-
-    // Settings sections
-    val settingsTitle: String,
-    val settingsDisplay: String,
-    val settingsParental: String,
-    val settingsBackup: String,
-    val settingsLanguage: String,
-    val settingsTheme: String,
-    val settingsMenuPosition: String,
-    val settingsAutoSync: String,
-    val settingsRefreshPlaylists: String,
-
-    // Movies / Series labels
-    val movieDetailPlot: String,
-    val seriesDetailEpisodes: String,
-    val moviesTitle: String,
-    val seriesTitle: String,
-    val noMovies: String,
-    val noSeries: String,
-
-    // Player overlay
-    val playerSleep: String,
-    val playerStats: String,
-    val playerTracks: String,
-    val playerDisplay: String,
-    val playerExternal: String,
-    val playerCast: String,
-    val playerRecord: String,
-    val playerAspect: String,
-    val playerSpeed: String,
-    val playerZapHint: String,
-
-    // Search
-    val searchPlaceholder: String,
-    val searchRecent: String,
-    val searchClear: String,
-    val searchNoMatches: String,
-
-    // Recordings
-    val recordingsTitle: String,
-    val recordingsEmpty: String,
-    val recordingStatusQueued: String,
-    val recordingStatusRunning: String,
-    val recordingStatusDone: String,
-    val recordingStatusFailed: String,
-    val recordingStatusCancelled: String,
-
-    // Common buttons
-    val live: String,
-    val movies: String,
-    val series: String,
-    val categories: String,
-    val tvGuide: String,
-    val favorites: String,
-    val play: String,
-    val resume: String,
-    val cancel: String,
-    val close: String,
-    val save: String,
-    val delete: String,
-    val confirm: String,
-    val dismiss: String,
-    val change: String,
-)
-
-private val EN = Strings(
-    navHome = "Home", navLive = "Live TV", navGuide = "Guide", navMovies = "Movies",
-    navSeries = "Series", navFavorites = "Favorites", navSearch = "Search",
-    navCategories = "Categories", navMultiview = "Multi-View",
-    navRecordings = "Recordings", navSettings = "Settings",
-
-    homeWelcome = "Welcome to Ultra TV",
-    homeSubtitle = "Native build · D-pad ready",
-    homeContinueWatching = "Continue watching",
-    homeRecentlyWatched = "Recently watched",
-    homeFeaturedChannels = "Featured channels",
-    homeFeaturedMovies = "Movies",
-    homeFeaturedSeries = "Series",
-    onboardingMacLabel = "Your device MAC:",
-    onboardingOpenSettings = "Open Settings",
-    onboardingFirstTime = "First-time setup",
-    onboardingTwoPaths = "Two paths to add a provider:",
-    onboardingPathManual = "1. Open Settings → +Xtream / +M3U / +M3U file / +Stalker, fill in the form.",
-    onboardingPathCloud = "2. Self-host the Cloudflare Worker from cloudflare-config/, paste this MAC in its dashboard, then in Settings → Set worker URL → Sync from cloud.",
-
-    parentalPinEnabled = "Parental PIN: enabled (4-digit)",
-    parentalPinNotSet = "Parental PIN: not set",
-    parentalSetPin = "Set PIN",
-    parentalChangePin = "Change PIN",
-    parentalClearPin = "Clear",
-    parentalManageLocked = "Manage locked channels…",
-    parentalSetTitle = "Set parental PIN",
-    parentalPinHint = "PIN (4 digits)",
-    parentalConfirmHint = "Confirm PIN",
-    parentalLockedTitle = "🔒 Locked content",
-    parentalEnterPin = "Enter your parental PIN to continue.",
-    parentalWrongPin = "Wrong PIN.",
-    parentalUnlock = "Unlock",
-
-    categoriesManage = "Manage categories",
-    categoriesFilterHint = "Filter category names…",
-    categoriesHideAll = "Hide all filtered",
-    categoriesShowAll = "Show all filtered",
-    categoriesHideAdult = "🔞 Hide adult",
-    categoriesResetAll = "Reset everything",
-    categoriesEmpty = "No categories yet — add a provider and re-sync.",
-    categoriesShow = "Show",
-    categoriesHide = "Hide",
-    categoriesCountTemplate = "%1\$d total · %2\$d shown · %3\$d hidden",
-
-    wizardWelcomeTitle = "👋 Welcome to Ultra TV",
-    wizardAddProviderTitle = "📡 Add a provider",
-    wizardDoneTitle = "🎉 You're set",
-    wizardStepTemplate = "Step %1\$d / %2\$d",
-    wizardIntro1 = "Ultra TV is a native Android-TV IPTV client. It speaks Xtream Codes, M3U / M3U8, M3U files from local storage, and Stalker Portal.",
-    wizardIntro2 = "It uses Compose-TV for the UI, Media3 / ExoPlayer for playback, Room for the catalog. D-pad navigation works out of the box.",
-    wizardTwoPaths = "Two paths:",
-    wizardPathManual = "• Settings → +Xtream / +M3U URL / +M3U file / +Stalker. Fill in the form.",
-    wizardPathCloud = "• Or open your Cloudflare Worker dashboard, paste the MAC below, add your providers there, then Settings → Sync from cloud.",
-    wizardTipsHead = "Tips you can come back to anytime:",
-    wizardTipDefault = "• ★ Default provider switching is in Settings.",
-    wizardTipSleep = "• 💤 Sleep timer + 📊 Stream stats live in the player overlay.",
-    wizardTipLock = "• 🔒 Lock individual channels via Settings → Parental.",
-    wizardTipBackup = "• 💾 Backup & restore exports providers + favorites + history as JSON.",
-    wizardTipGuide = "• 🗓 Guide → Refresh xmltv pulls a 12 h EPG grid.",
-    wizardBack = "Back",
-    wizardNext = "Next",
-    wizardAddProviderCta = "Add a provider →",
-    wizardSkip = "Skip for now",
-
-    lockChannelsTitle = "Lock individual channels",
-    lockChannelsSubtitle = "Locked channels need the parental PIN to play. %1\$d total · %2\$d locked",
-    lockChannelsFilterHint = "Filter channels…",
-    lockChannelsLock = "Lock",
-    lockChannelsUnlock = "Unlock",
-
-    guideClickHint = "Click a channel to load its next programmes.",
-    guideLoadingEpg = "Loading EPG…",
-    guideProgrammesTemplate = "%1\$d programmes loaded · %2\$d channels",
-    guideLoading = "Loading…",
-    guideRefreshXmltv = "Refresh xmltv",
-    guideNoChannels = "No channels — add a provider in Settings.",
-
-    addProviderAdd = "Add",
-    addProviderXtreamTitle = "Add Xtream Codes provider",
-    addProviderM3uTitle = "Add M3U playlist",
-    addProviderStalkerTitle = "Add Stalker portal",
-    fieldNameOptional = "Name (optional)",
-    fieldServerUrl = "Server URL (http://host:port)",
-    fieldUsername = "Username",
-    fieldPassword = "Password",
-    fieldPlaylistUrl = "Playlist URL",
-    fieldPortalUrl = "Portal URL",
-    fieldDeviceMac = "Device MAC (XX:XX:XX:XX:XX:XX)",
-
-    settingsAutoImportTitle = "📡 Auto-import via device MAC",
-    settingsYourMac = "Your MAC:",
-    settingsMacHint = "Open your worker dashboard, paste this MAC, add your providers there, then press Sync.",
-    settingsConfigPasswordLabel = "Config password: ",
-    settingsConfigPasswordNone = "(none — anyone with the MAC reads it)",
-    settingsSet = "Set",
-    settingsSyncing = "Working…",
-    settingsSyncFromCloud = "Sync from cloud",
-    settingsAddProviderTitle = "➕ Add a provider",
-    settingsAddProviderHint = "Tap a button to open the form. The IME only shows up inside the dialog — you won't trip on it while scrolling Settings.",
-    settingsAddXtream = "+ Xtream Codes",
-    settingsAddM3uUrl = "+ M3U URL",
-    settingsAddM3uFile = "+ M3U file…",
-    settingsAddStalker = "+ Stalker portal",
-    settingsConfiguredHeader = "Configured providers",
-    settingsNoneYet = "(none yet)",
-    settingsDefaultBadge = "★ Default",
-    settingsSetDefault = "Set default",
-    settingsResync = "Re-sync",
-    settingsBackupTitle = "💾 Backup & restore",
-    settingsBackupHint = "Exports providers, favorites and watch history to a JSON file you choose. Catalogs (channels / movies / series) are re-fetched via sync, not bundled.",
-    settingsBackupExport = "Export backup",
-    settingsBackupImport = "Import backup…",
-    settingsParentalHint = "When a PIN is set, adult categories (xxx / adult / 18+ / etc.) auto-lock on each sync.",
-    settingsConfigPwdDialogTitle = "Config password",
-    settingsConfigPwdDialogHint = "Each MAC's config on the worker can be protected by a password. Set the same value the admin set when provisioning your MAC. Leave blank to send no password (works only for unprotected MACs).",
-    settingsConfigPwdFieldLabel = "Password (visible — TV remote-friendly)",
-    settingsConfigPwdFieldPlaceholder = "Leave blank to clear",
-    settingsWorkerDialogTitle = "Set Cloudflare Worker URL",
-    settingsWorkerDialogHint = "Each user deploys their own Worker (cloudflare-config/) and pastes its URL here. We never bundle a default URL in the app to avoid leaking yours through the source code.",
-    settingsWorkerFieldLabel = "Worker base URL (e.g. https://your-config.your-acct.workers.dev)",
-    toastBackupSaved = "Backup saved",
-    toastSaveFailed = "Save failed: ",
-    toastEmptyFile = "Empty / unreadable file",
-    toastConfigPasswordSaved = "Config password saved",
-
-    prefSidebar = "Sidebar",
-    prefTopBar = "Top bar",
-    prefThemeDark = "Dark",
-    prefThemeAmoled = "AMOLED",
-    prefThemeBlue = "Blue",
-    prefDefaultPlayer = "Default player",
-    prefPlayerInternal = "Internal (Media3)",
-    prefPlayerExternal = "External (VLC / MX)",
-    prefAutoSyncHint = "Pull provider catalogs every time the app starts.",
-    prefShowChannelNumbers = "Show channel numbers",
-    prefShowChannelNumbersHint = "Display the position number next to each channel in Live TV.",
-    prefHideAdult = "Hide adult categories",
-    prefHideAdultHint = "Completely remove adult categories from lists (beyond PIN lock).",
-    prefResume = "Resume playback",
-    prefResumeHint = "Reopen movies/episodes at the position you left them.",
-    prefAutoPlayNext = "Auto-play next episode",
-    prefAutoPlayNextHint = "Automatically play S0xE0y+1 when an episode ends.",
-    prefLaunchAtBoot = "Launch at TV boot",
-    prefLaunchAtBootHint = "Open Ultra TV automatically when the box finishes booting.",
-    prefAutoPlayLast = "Auto-play last watched on launch",
-    prefAutoPlayLastHint = "Resume the last channel / movie / episode when the app starts.",
-    prefIntervalLaunch = "Every launch",
-    prefInterval6 = "Every 6h",
-    prefInterval12 = "Every 12h",
-    prefInterval24 = "Every 24h",
-
-    favoritesEmpty = "Nothing favorited yet — open a movie or series and tap ☆.",
-    favoritesMoviesSection = "Movies — %1\$d",
-    favoritesSeriesSection = "Series — %1\$d",
-    detailLoading = "Loading…",
-    seriesNoEpisodes = "No episodes available.",
-    multiViewTitle = "Multi-View",
-    multiViewHint = "Tap a tile to assign a channel. ENTER cycles through tiles.",
-    multiViewPickTemplate = "Choose a channel for tile %1\$d:",
-    recordingsPlay = "Play",
-    recordingsOpenWith = "Open with…",
-    playerOff = "Off",
-    playerAudioTemplate = "Audio (%1\$d)",
-    playerSubtitlesTemplate = "Subtitles (%1\$d)",
-
-    liveAllChannels = "All channels",
-    liveZappingEyebrow = "ZAPPING",
-    liveOnAirPill = "ON AIR",
-    liveThen = "then",
-    liveDayScheduleEyebrow = "TODAY'S SCHEDULE",
-    liveNoEpgForChannel = "No EPG available for this channel.",
-    updateAvailableEyebrow = "UPDATE AVAILABLE",
-    updateLater = "Later",
-    updateInstall = "Install now",
-    updateDownloading = "Downloading…",
-    settingsTelemetryTitle = "Remote diagnostics",
-    settingsTelemetryHint = "Send crash + event logs to the worker for debugging. Off = no outbound telemetry.",
-    settingsCheckForUpdates = "Check for updates",
-    settingsCheckingForUpdates = "Checking…",
-    settingsUpToDateTemplate = "You are up to date (v%s)",
-    settingsUpdateAvailableTemplate = "Update %s available",
-    backupEncryptHint = "The exported file contains your Xtream / Stalker credentials in clear text. Set a password to encrypt the backup with AES-GCM (recommended).",
-    backupEncryptFieldLabel = "Encryption password (optional)",
-    backupEncryptFieldPlaceholder = "Leave empty for a plain export",
-    liveChannelsCountTemplate = "%1\$d channels",
-    liveNoChannelsInCategory = "No channels in this category.",
-    railOther = "Other",
-    open = "Open",
-
-    sleepLabel = "Sleep",
-    sleepMin15 = "15 min",
-    sleepMin30 = "30 min",
-    sleep1h = "1 hour",
-    sleep2h = "2 hours",
-    sleepCancel = "Cancel timer",
-    sleepReached = "Sleep timer reached — playback paused",
-    recordingQueuedTemplate = "Recording queued (max %1\$d min)",
-    statResolution = "Resolution",
-    statVideoCodec = "Video codec",
-    statFrameRate = "Frame rate",
-    statVideoBitrate = "Video bitrate",
-    statAudioCodec = "Audio codec",
-    statAudioChannels = "Audio channels",
-    statBuffered = "Buffered",
-    statDroppedFrames = "Dropped frames",
-
-    toastBackupReady = "Backup ready — pick a file to save it.",
-    toastRestoredTemplate = "Restored %1\$d provider(s), %2\$d fav, %3\$d watch entries",
-    toastRestoreFailed = "Restore failed: ",
-    toastRecordingQueued = "Recording queued — see Recordings screen",
-
-    settingsTitle = "Settings", settingsDisplay = "Display & playback",
-    settingsParental = "Parental controls", settingsBackup = "Backup & restore",
-    settingsLanguage = "Language", settingsTheme = "Theme",
-    settingsMenuPosition = "Menu position", settingsAutoSync = "Auto-sync on launch",
-    settingsRefreshPlaylists = "Refresh playlists",
-
-    movieDetailPlot = "Plot", seriesDetailEpisodes = "Episodes",
-    moviesTitle = "Movies", seriesTitle = "Series",
-    noMovies = "No movies — add a provider in Settings and re-sync.",
-    noSeries = "No series — add a provider in Settings and re-sync.",
-
-    playerSleep = "Sleep", playerStats = "Stats", playerTracks = "Tracks",
-    playerDisplay = "Display", playerExternal = "External player",
-    playerCast = "Cast", playerRecord = "Record",
-    playerAspect = "Aspect", playerSpeed = "Speed",
-    playerZapHint = "▲ ▼ to zap channels",
-
-    searchPlaceholder = "Type to search channels, movies, series…",
-    searchRecent = "Recent:", searchClear = "Clear",
-    searchNoMatches = "No matches.",
-
-    recordingsTitle = "Recordings",
-    recordingsEmpty = "No recordings yet. Open a movie or episode and press the ⏺ Record button to queue a download.",
-    recordingStatusQueued = "Queued",
-    recordingStatusRunning = "Downloading…",
-    recordingStatusDone = "Saved",
-    recordingStatusFailed = "Failed",
-    recordingStatusCancelled = "Cancelled",
-
-    live = "Live TV", movies = "Movies", series = "Series", categories = "Categories",
-    tvGuide = "TV Guide", favorites = "Favorites",
-    play = "Play", resume = "Resume", cancel = "Cancel", close = "Close",
-    save = "Save", delete = "Delete", confirm = "Confirm",
-    dismiss = "Dismiss", change = "Change",
-)
-
-private val FR = Strings(
-    navHome = "Accueil", navLive = "TV en direct", navGuide = "Guide", navMovies = "Films",
-    navSeries = "Séries", navFavorites = "Favoris", navSearch = "Recherche",
-    navCategories = "Catégories", navMultiview = "Multi-vue",
-    navRecordings = "Enregistrements", navSettings = "Paramètres",
-
-    homeWelcome = "Bienvenue dans Ultra TV",
-    homeSubtitle = "Build native · prêt pour la télécommande",
-    homeContinueWatching = "Continuer à regarder",
-    homeRecentlyWatched = "Récemment regardé",
-    homeFeaturedChannels = "Chaînes en vedette",
-    homeFeaturedMovies = "Films",
-    homeFeaturedSeries = "Séries",
-    onboardingMacLabel = "MAC de l'appareil :",
-    onboardingOpenSettings = "Ouvrir les paramètres",
-    onboardingFirstTime = "Première configuration",
-    onboardingTwoPaths = "Deux façons d'ajouter un fournisseur :",
-    onboardingPathManual = "1. Ouvre Paramètres → +Xtream / +M3U / +M3U fichier / +Stalker et remplis le formulaire.",
-    onboardingPathCloud = "2. Héberge le worker Cloudflare depuis cloudflare-config/, colle ce MAC dans son tableau de bord, puis Paramètres → Définir l'URL du worker → Sync depuis le cloud.",
-
-    parentalPinEnabled = "PIN parental : activé (4 chiffres)",
-    parentalPinNotSet = "PIN parental : non défini",
-    parentalSetPin = "Définir le PIN",
-    parentalChangePin = "Modifier le PIN",
-    parentalClearPin = "Effacer",
-    parentalManageLocked = "Gérer les chaînes verrouillées…",
-    parentalSetTitle = "Définir le PIN parental",
-    parentalPinHint = "PIN (4 chiffres)",
-    parentalConfirmHint = "Confirmer le PIN",
-    parentalLockedTitle = "🔒 Contenu verrouillé",
-    parentalEnterPin = "Saisis ton PIN parental pour continuer.",
-    parentalWrongPin = "PIN incorrect.",
-    parentalUnlock = "Déverrouiller",
-
-    categoriesManage = "Gérer les catégories",
-    categoriesFilterHint = "Filtrer les noms de catégorie…",
-    categoriesHideAll = "Masquer tout le filtre",
-    categoriesShowAll = "Afficher tout le filtre",
-    categoriesHideAdult = "🔞 Masquer adulte",
-    categoriesResetAll = "Tout réinitialiser",
-    categoriesEmpty = "Aucune catégorie — ajoute un fournisseur et re-sync.",
-    categoriesShow = "Afficher",
-    categoriesHide = "Masquer",
-    categoriesCountTemplate = "%1\$d au total · %2\$d affichées · %3\$d masquées",
-
-    wizardWelcomeTitle = "👋 Bienvenue dans Ultra TV",
-    wizardAddProviderTitle = "📡 Ajouter un fournisseur",
-    wizardDoneTitle = "🎉 Tout est prêt",
-    wizardStepTemplate = "Étape %1\$d / %2\$d",
-    wizardIntro1 = "Ultra TV est un client IPTV natif Android-TV. Il gère Xtream Codes, M3U / M3U8, fichiers M3U locaux et Stalker Portal.",
-    wizardIntro2 = "Il utilise Compose-TV pour l'UI, Media3 / ExoPlayer pour la lecture et Room pour le catalogue. La navigation à la télécommande fonctionne nativement.",
-    wizardTwoPaths = "Deux options :",
-    wizardPathManual = "• Paramètres → +Xtream / +M3U URL / +M3U fichier / +Stalker. Remplis le formulaire.",
-    wizardPathCloud = "• Ou ouvre ton tableau de bord Cloudflare Worker, colle la MAC ci-dessous, ajoute tes fournisseurs, puis Paramètres → Sync depuis le cloud.",
-    wizardTipsHead = "Astuces à retrouver à tout moment :",
-    wizardTipDefault = "• ★ Le choix du fournisseur par défaut est dans Paramètres.",
-    wizardTipSleep = "• 💤 Veille programmée + 📊 Stats du flux dans l'overlay du lecteur.",
-    wizardTipLock = "• 🔒 Verrouille des chaînes via Paramètres → Parental.",
-    wizardTipBackup = "• 💾 Sauvegarde/restauration exporte fournisseurs + favoris + historique en JSON.",
-    wizardTipGuide = "• 🗓 Guide → Rafraîchir xmltv télécharge une grille EPG de 12 h.",
-    wizardBack = "Retour",
-    wizardNext = "Suivant",
-    wizardAddProviderCta = "Ajouter un fournisseur →",
-    wizardSkip = "Passer pour l'instant",
-
-    lockChannelsTitle = "Verrouiller des chaînes",
-    lockChannelsSubtitle = "Les chaînes verrouillées exigent le PIN parental. %1\$d au total · %2\$d verrouillées",
-    lockChannelsFilterHint = "Filtrer les chaînes…",
-    lockChannelsLock = "Verrouiller",
-    lockChannelsUnlock = "Déverrouiller",
-
-    guideClickHint = "Clique une chaîne pour charger les prochains programmes.",
-    guideLoadingEpg = "Chargement de l'EPG…",
-    guideProgrammesTemplate = "%1\$d programmes chargés · %2\$d chaînes",
-    guideLoading = "Chargement…",
-    guideRefreshXmltv = "Rafraîchir xmltv",
-    guideNoChannels = "Aucune chaîne — ajoute un fournisseur dans Paramètres.",
-
-    addProviderAdd = "Ajouter",
-    addProviderXtreamTitle = "Ajouter un fournisseur Xtream Codes",
-    addProviderM3uTitle = "Ajouter une playlist M3U",
-    addProviderStalkerTitle = "Ajouter un portail Stalker",
-    fieldNameOptional = "Nom (optionnel)",
-    fieldServerUrl = "URL du serveur (http://hôte:port)",
-    fieldUsername = "Identifiant",
-    fieldPassword = "Mot de passe",
-    fieldPlaylistUrl = "URL de la playlist",
-    fieldPortalUrl = "URL du portail",
-    fieldDeviceMac = "MAC de l'appareil (XX:XX:XX:XX:XX:XX)",
-
-    settingsAutoImportTitle = "📡 Import auto via la MAC de l'appareil",
-    settingsYourMac = "Ta MAC :",
-    settingsMacHint = "Ouvre ton tableau de bord Worker, colle cette MAC, ajoute tes fournisseurs, puis appuie sur Sync.",
-    settingsConfigPasswordLabel = "Mot de passe de la config : ",
-    settingsConfigPasswordNone = "(aucun — n'importe qui avec la MAC peut lire)",
-    settingsSet = "Définir",
-    settingsSyncing = "En cours…",
-    settingsSyncFromCloud = "Sync depuis le cloud",
-    settingsAddProviderTitle = "➕ Ajouter un fournisseur",
-    settingsAddProviderHint = "Appuie sur un bouton pour ouvrir le formulaire. Le clavier n'apparaît que dans la fenêtre — il ne te gênera pas en faisant défiler les paramètres.",
-    settingsAddXtream = "+ Xtream Codes",
-    settingsAddM3uUrl = "+ URL M3U",
-    settingsAddM3uFile = "+ Fichier M3U…",
-    settingsAddStalker = "+ Portail Stalker",
-    settingsConfiguredHeader = "Fournisseurs configurés",
-    settingsNoneYet = "(aucun pour l'instant)",
-    settingsDefaultBadge = "★ Défaut",
-    settingsSetDefault = "Définir par défaut",
-    settingsResync = "Re-sync",
-    settingsBackupTitle = "💾 Sauvegarde et restauration",
-    settingsBackupHint = "Exporte fournisseurs, favoris et historique dans un fichier JSON. Les catalogues (chaînes / films / séries) sont re-téléchargés à la sync, pas inclus.",
-    settingsBackupExport = "Exporter la sauvegarde",
-    settingsBackupImport = "Importer une sauvegarde…",
-    settingsParentalHint = "Quand un PIN est défini, les catégories adultes (xxx / adult / 18+ / etc.) se verrouillent à chaque sync.",
-    settingsConfigPwdDialogTitle = "Mot de passe de la config",
-    settingsConfigPwdDialogHint = "Chaque config par MAC peut être protégée par un mot de passe. Saisis la même valeur que celle que l'admin a définie pour ta MAC. Laisse vide pour n'envoyer aucun mot de passe (n'a d'effet que pour les MAC non protégées).",
-    settingsConfigPwdFieldLabel = "Mot de passe (visible — adapté à la télécommande)",
-    settingsConfigPwdFieldPlaceholder = "Laisse vide pour effacer",
-    settingsWorkerDialogTitle = "Définir l'URL du Worker Cloudflare",
-    settingsWorkerDialogHint = "Chaque utilisateur déploie son propre Worker (cloudflare-config/) et colle son URL ici. Aucune URL par défaut n'est livrée dans l'app pour éviter de divulguer la tienne via le code source.",
-    settingsWorkerFieldLabel = "URL de base du Worker (ex. https://ta-config.ton-compte.workers.dev)",
-    toastBackupSaved = "Sauvegarde enregistrée",
-    toastSaveFailed = "Échec de l'enregistrement : ",
-    toastEmptyFile = "Fichier vide ou illisible",
-    toastConfigPasswordSaved = "Mot de passe enregistré",
-
-    prefSidebar = "Barre latérale",
-    prefTopBar = "Barre du haut",
-    prefThemeDark = "Sombre",
-    prefThemeAmoled = "AMOLED",
-    prefThemeBlue = "Bleu",
-    prefDefaultPlayer = "Lecteur par défaut",
-    prefPlayerInternal = "Interne (Media3)",
-    prefPlayerExternal = "Externe (VLC / MX)",
-    prefAutoSyncHint = "Recharge les catalogues à chaque lancement de l'app.",
-    prefShowChannelNumbers = "Afficher les numéros de chaîne",
-    prefShowChannelNumbersHint = "Affiche le numéro de position à côté de chaque chaîne en Live TV.",
-    prefHideAdult = "Masquer les catégories adultes",
-    prefHideAdultHint = "Retire complètement les catégories adultes des listes (au-delà du verrou PIN).",
-    prefResume = "Reprise de lecture",
-    prefResumeHint = "Rouvre films/épisodes là où tu t'es arrêté.",
-    prefAutoPlayNext = "Auto-lecture épisode suivant",
-    prefAutoPlayNextHint = "Lance S0xE0y+1 automatiquement à la fin d'un épisode.",
-    prefLaunchAtBoot = "Lancer au démarrage de la TV",
-    prefLaunchAtBootHint = "Ouvre Ultra TV automatiquement quand la box démarre.",
-    prefAutoPlayLast = "Reprendre le dernier au démarrage",
-    prefAutoPlayLastHint = "Rejoue la dernière chaîne / film / épisode au lancement.",
-    prefIntervalLaunch = "À chaque lancement",
-    prefInterval6 = "Toutes les 6 h",
-    prefInterval12 = "Toutes les 12 h",
-    prefInterval24 = "Toutes les 24 h",
-
-    favoritesEmpty = "Aucun favori — ouvre un film ou une série et appuie sur ☆.",
-    favoritesMoviesSection = "Films — %1\$d",
-    favoritesSeriesSection = "Séries — %1\$d",
-    detailLoading = "Chargement…",
-    seriesNoEpisodes = "Aucun épisode disponible.",
-    multiViewTitle = "Multi-vue",
-    multiViewHint = "Sélectionne une case pour lui attribuer une chaîne. ENTRÉE passe à la suivante.",
-    multiViewPickTemplate = "Choisis une chaîne pour la case %1\$d :",
-    recordingsPlay = "Lire",
-    recordingsOpenWith = "Ouvrir avec…",
-    playerOff = "Désactivé",
-    playerAudioTemplate = "Audio (%1\$d)",
-    playerSubtitlesTemplate = "Sous-titres (%1\$d)",
-
-    liveAllChannels = "Toutes les chaînes",
-    liveZappingEyebrow = "ZAPPING",
-    liveOnAirPill = "EN COURS",
-    liveThen = "puis",
-    liveDayScheduleEyebrow = "PROGRAMME DE LA JOURNÉE",
-    liveNoEpgForChannel = "Pas d'EPG disponible pour cette chaîne.",
-    updateAvailableEyebrow = "MISE À JOUR DISPONIBLE",
-    updateLater = "Plus tard",
-    updateInstall = "Mettre à jour",
-    updateDownloading = "Téléchargement…",
-    settingsTelemetryTitle = "Diagnostics distants",
-    settingsTelemetryHint = "Envoie crashes + events au worker pour debug. Désactive pour stopper toute télémétrie sortante.",
-    settingsCheckForUpdates = "Vérifier les mises à jour",
-    settingsCheckingForUpdates = "Vérification…",
-    settingsUpToDateTemplate = "Vous êtes à jour (v%s)",
-    settingsUpdateAvailableTemplate = "Mise à jour %s disponible",
-    backupEncryptHint = "Le fichier exporté contient tes credentials Xtream/Stalker en clair. Saisis un mot de passe pour chiffrer le backup en AES-GCM (recommandé).",
-    backupEncryptFieldLabel = "Mot de passe de chiffrement (optionnel)",
-    backupEncryptFieldPlaceholder = "Laisser vide pour un export en clair",
-    liveChannelsCountTemplate = "%1\$d chaînes",
-    liveNoChannelsInCategory = "Aucune chaîne dans cette catégorie.",
-    railOther = "Autre",
-    open = "Ouvrir",
-
-    sleepLabel = "Veille",
-    sleepMin15 = "15 min",
-    sleepMin30 = "30 min",
-    sleep1h = "1 heure",
-    sleep2h = "2 heures",
-    sleepCancel = "Annuler le minuteur",
-    sleepReached = "Minuteur atteint — lecture en pause",
-    recordingQueuedTemplate = "Enregistrement en file (max %1\$d min)",
-    statResolution = "Résolution",
-    statVideoCodec = "Codec vidéo",
-    statFrameRate = "Images/s",
-    statVideoBitrate = "Bitrate vidéo",
-    statAudioCodec = "Codec audio",
-    statAudioChannels = "Canaux audio",
-    statBuffered = "Tampon",
-    statDroppedFrames = "Images perdues",
-
-    toastBackupReady = "Sauvegarde prête — choisis un fichier pour l'enregistrer.",
-    toastRestoredTemplate = "Restauré : %1\$d fournisseur(s), %2\$d favoris, %3\$d entrées d'historique",
-    toastRestoreFailed = "Échec de la restauration : ",
-    toastRecordingQueued = "Enregistrement en file — voir l'écran Enregistrements",
-
-    settingsTitle = "Paramètres", settingsDisplay = "Affichage et lecture",
-    settingsParental = "Contrôle parental", settingsBackup = "Sauvegarde et restauration",
-    settingsLanguage = "Langue", settingsTheme = "Thème",
-    settingsMenuPosition = "Position du menu", settingsAutoSync = "Sync auto au lancement",
-    settingsRefreshPlaylists = "Rafraîchir les playlists",
-
-    movieDetailPlot = "Synopsis", seriesDetailEpisodes = "Épisodes",
-    moviesTitle = "Films", seriesTitle = "Séries",
-    noMovies = "Aucun film — ajoute un fournisseur dans les paramètres puis re-sync.",
-    noSeries = "Aucune série — ajoute un fournisseur dans les paramètres puis re-sync.",
-
-    playerSleep = "Veille", playerStats = "Stats", playerTracks = "Pistes",
-    playerDisplay = "Affichage", playerExternal = "Lecteur externe",
-    playerCast = "Cast", playerRecord = "Enregistrer",
-    playerAspect = "Format", playerSpeed = "Vitesse",
-    playerZapHint = "▲ ▼ pour zapper",
-
-    searchPlaceholder = "Saisis pour chercher chaînes, films, séries…",
-    searchRecent = "Récents :", searchClear = "Effacer",
-    searchNoMatches = "Aucun résultat.",
-
-    recordingsTitle = "Enregistrements",
-    recordingsEmpty = "Aucun enregistrement pour l'instant. Ouvre un film ou un épisode et appuie sur ⏺ Enregistrer.",
-    recordingStatusQueued = "En file",
-    recordingStatusRunning = "Téléchargement…",
-    recordingStatusDone = "Enregistré",
-    recordingStatusFailed = "Échec",
-    recordingStatusCancelled = "Annulé",
-
-    live = "TV en direct", movies = "Films", series = "Séries", categories = "Catégories",
-    tvGuide = "Guide TV", favorites = "Favoris",
-    play = "Lecture", resume = "Reprendre", cancel = "Annuler", close = "Fermer",
-    save = "Enregistrer", delete = "Supprimer", confirm = "Confirmer",
-    dismiss = "Retirer", change = "Modifier",
-)
-
-private val ES = Strings(
-    navHome = "Inicio", navLive = "TV en vivo", navGuide = "Guía", navMovies = "Películas",
-    navSeries = "Series", navFavorites = "Favoritos", navSearch = "Buscar",
-    navCategories = "Categorías", navMultiview = "Multi-vista",
-    navRecordings = "Grabaciones", navSettings = "Ajustes",
-
-    homeWelcome = "Bienvenido a Ultra TV",
-    homeSubtitle = "Build nativo · listo para mando a distancia",
-    homeContinueWatching = "Continuar viendo",
-    homeRecentlyWatched = "Vistos recientemente",
-    homeFeaturedChannels = "Canales destacados",
-    homeFeaturedMovies = "Películas",
-    homeFeaturedSeries = "Series",
-    onboardingMacLabel = "MAC del dispositivo:",
-    onboardingOpenSettings = "Abrir ajustes",
-    onboardingFirstTime = "Configuración inicial",
-    onboardingTwoPaths = "Dos formas de añadir un proveedor:",
-    onboardingPathManual = "1. Abre Ajustes → +Xtream / +M3U / +M3U archivo / +Stalker y rellena el formulario.",
-    onboardingPathCloud = "2. Aloja el worker de Cloudflare desde cloudflare-config/, pega esta MAC en su panel y luego Ajustes → Definir URL del worker → Sync desde la nube.",
-
-    parentalPinEnabled = "PIN parental: activado (4 dígitos)",
-    parentalPinNotSet = "PIN parental: no configurado",
-    parentalSetPin = "Configurar PIN",
-    parentalChangePin = "Cambiar PIN",
-    parentalClearPin = "Borrar",
-    parentalManageLocked = "Gestionar canales bloqueados…",
-    parentalSetTitle = "Configurar PIN parental",
-    parentalPinHint = "PIN (4 dígitos)",
-    parentalConfirmHint = "Confirmar PIN",
-    parentalLockedTitle = "🔒 Contenido bloqueado",
-    parentalEnterPin = "Introduce tu PIN parental para continuar.",
-    parentalWrongPin = "PIN incorrecto.",
-    parentalUnlock = "Desbloquear",
-
-    categoriesManage = "Gestionar categorías",
-    categoriesFilterHint = "Filtrar nombres de categoría…",
-    categoriesHideAll = "Ocultar todo el filtro",
-    categoriesShowAll = "Mostrar todo el filtro",
-    categoriesHideAdult = "🔞 Ocultar adulto",
-    categoriesResetAll = "Restablecer todo",
-    categoriesEmpty = "Sin categorías — añade un proveedor y vuelve a sincronizar.",
-    categoriesShow = "Mostrar",
-    categoriesHide = "Ocultar",
-    categoriesCountTemplate = "%1\$d en total · %2\$d visibles · %3\$d ocultas",
-
-    wizardWelcomeTitle = "👋 Bienvenido a Ultra TV",
-    wizardAddProviderTitle = "📡 Añadir un proveedor",
-    wizardDoneTitle = "🎉 Todo listo",
-    wizardStepTemplate = "Paso %1\$d / %2\$d",
-    wizardIntro1 = "Ultra TV es un cliente IPTV nativo para Android-TV. Soporta Xtream Codes, M3U / M3U8, archivos M3U locales y Stalker Portal.",
-    wizardIntro2 = "Usa Compose-TV para la UI, Media3 / ExoPlayer para reproducción y Room para el catálogo. La navegación con mando funciona de fábrica.",
-    wizardTwoPaths = "Dos formas:",
-    wizardPathManual = "• Ajustes → +Xtream / +M3U URL / +M3U archivo / +Stalker. Rellena el formulario.",
-    wizardPathCloud = "• O abre tu panel de Cloudflare Worker, pega la MAC de abajo, añade los proveedores y luego Ajustes → Sync desde la nube.",
-    wizardTipsHead = "Consejos a los que puedes volver:",
-    wizardTipDefault = "• ★ El proveedor por defecto se cambia en Ajustes.",
-    wizardTipSleep = "• 💤 Temporizador + 📊 Stats del stream en el overlay del reproductor.",
-    wizardTipLock = "• 🔒 Bloquea canales en Ajustes → Parental.",
-    wizardTipBackup = "• 💾 Copia y restauración exporta proveedores + favoritos + historial como JSON.",
-    wizardTipGuide = "• 🗓 Guía → Refrescar xmltv descarga una rejilla EPG de 12 h.",
-    wizardBack = "Atrás",
-    wizardNext = "Siguiente",
-    wizardAddProviderCta = "Añadir un proveedor →",
-    wizardSkip = "Omitir por ahora",
-
-    lockChannelsTitle = "Bloquear canales individuales",
-    lockChannelsSubtitle = "Los canales bloqueados requieren el PIN parental. %1\$d en total · %2\$d bloqueados",
-    lockChannelsFilterHint = "Filtrar canales…",
-    lockChannelsLock = "Bloquear",
-    lockChannelsUnlock = "Desbloquear",
-
-    guideClickHint = "Pulsa un canal para cargar los próximos programas.",
-    guideLoadingEpg = "Cargando EPG…",
-    guideProgrammesTemplate = "%1\$d programas cargados · %2\$d canales",
-    guideLoading = "Cargando…",
-    guideRefreshXmltv = "Refrescar xmltv",
-    guideNoChannels = "Sin canales — añade un proveedor en Ajustes.",
-
-    addProviderAdd = "Añadir",
-    addProviderXtreamTitle = "Añadir proveedor Xtream Codes",
-    addProviderM3uTitle = "Añadir playlist M3U",
-    addProviderStalkerTitle = "Añadir portal Stalker",
-    fieldNameOptional = "Nombre (opcional)",
-    fieldServerUrl = "URL del servidor (http://host:puerto)",
-    fieldUsername = "Usuario",
-    fieldPassword = "Contraseña",
-    fieldPlaylistUrl = "URL de la playlist",
-    fieldPortalUrl = "URL del portal",
-    fieldDeviceMac = "MAC del dispositivo (XX:XX:XX:XX:XX:XX)",
-
-    settingsAutoImportTitle = "📡 Importación automática mediante MAC",
-    settingsYourMac = "Tu MAC:",
-    settingsMacHint = "Abre el panel de tu worker, pega esta MAC, añade proveedores y pulsa Sync.",
-    settingsConfigPasswordLabel = "Contraseña de la config: ",
-    settingsConfigPasswordNone = "(ninguna — cualquiera con la MAC puede leerla)",
-    settingsSet = "Definir",
-    settingsSyncing = "Procesando…",
-    settingsSyncFromCloud = "Sync desde la nube",
-    settingsAddProviderTitle = "➕ Añadir un proveedor",
-    settingsAddProviderHint = "Pulsa un botón para abrir el formulario. El teclado solo aparece dentro del diálogo — no molesta al desplazarte por Ajustes.",
-    settingsAddXtream = "+ Xtream Codes",
-    settingsAddM3uUrl = "+ URL M3U",
-    settingsAddM3uFile = "+ Archivo M3U…",
-    settingsAddStalker = "+ Portal Stalker",
-    settingsConfiguredHeader = "Proveedores configurados",
-    settingsNoneYet = "(ninguno aún)",
-    settingsDefaultBadge = "★ Predeterminado",
-    settingsSetDefault = "Hacer predeterminado",
-    settingsResync = "Re-sync",
-    settingsBackupTitle = "💾 Copia y restauración",
-    settingsBackupHint = "Exporta proveedores, favoritos e historial a un JSON que elijas. Los catálogos (canales / películas / series) se re-descargan en sync, no se incluyen.",
-    settingsBackupExport = "Exportar copia",
-    settingsBackupImport = "Importar copia…",
-    settingsParentalHint = "Cuando hay un PIN, las categorías adultas (xxx / adult / 18+ / etc.) se bloquean en cada sync.",
-    settingsConfigPwdDialogTitle = "Contraseña de la config",
-    settingsConfigPwdDialogHint = "La config por MAC puede protegerse con contraseña. Usa la misma que el admin definió para tu MAC. Déjala vacía para no enviar contraseña (solo funciona con MAC sin proteger).",
-    settingsConfigPwdFieldLabel = "Contraseña (visible — apta para mando)",
-    settingsConfigPwdFieldPlaceholder = "Vacío para borrar",
-    settingsWorkerDialogTitle = "Configurar URL del Worker Cloudflare",
-    settingsWorkerDialogHint = "Cada usuario despliega su propio Worker (cloudflare-config/) y pega su URL aquí. No incluimos una por defecto para no filtrar la tuya en el código.",
-    settingsWorkerFieldLabel = "URL base del Worker (p. ej. https://tu-config.tu-cuenta.workers.dev)",
-    toastBackupSaved = "Copia guardada",
-    toastSaveFailed = "Error al guardar: ",
-    toastEmptyFile = "Archivo vacío o ilegible",
-    toastConfigPasswordSaved = "Contraseña guardada",
-
-    prefSidebar = "Barra lateral",
-    prefTopBar = "Barra superior",
-    prefThemeDark = "Oscuro",
-    prefThemeAmoled = "AMOLED",
-    prefThemeBlue = "Azul",
-    prefDefaultPlayer = "Reproductor por defecto",
-    prefPlayerInternal = "Interno (Media3)",
-    prefPlayerExternal = "Externo (VLC / MX)",
-    prefAutoSyncHint = "Re-descarga los catálogos cada vez que arranca la app.",
-    prefShowChannelNumbers = "Mostrar números de canal",
-    prefShowChannelNumbersHint = "Muestra el número de posición junto a cada canal en TV en vivo.",
-    prefHideAdult = "Ocultar categorías adultas",
-    prefHideAdultHint = "Quita por completo las categorías adultas de las listas (más allá del bloqueo PIN).",
-    prefResume = "Reanudar reproducción",
-    prefResumeHint = "Reabre películas/episodios donde los dejaste.",
-    prefAutoPlayNext = "Reproducir siguiente episodio",
-    prefAutoPlayNextHint = "Reproduce S0xE0y+1 automáticamente al acabar un episodio.",
-    prefLaunchAtBoot = "Iniciar al encender la TV",
-    prefLaunchAtBootHint = "Abre Ultra TV automáticamente cuando la box arranca.",
-    prefAutoPlayLast = "Reproducir último al inicio",
-    prefAutoPlayLastHint = "Reanuda el último canal / película / episodio al iniciar.",
-    prefIntervalLaunch = "Cada inicio",
-    prefInterval6 = "Cada 6 h",
-    prefInterval12 = "Cada 12 h",
-    prefInterval24 = "Cada 24 h",
-
-    favoritesEmpty = "Sin favoritos — abre una película o serie y pulsa ☆.",
-    favoritesMoviesSection = "Películas — %1\$d",
-    favoritesSeriesSection = "Series — %1\$d",
-    detailLoading = "Cargando…",
-    seriesNoEpisodes = "No hay episodios disponibles.",
-    multiViewTitle = "Multi-vista",
-    multiViewHint = "Pulsa una casilla para asignar un canal. ENTER pasa entre casillas.",
-    multiViewPickTemplate = "Elige un canal para la casilla %1\$d:",
-    recordingsPlay = "Reproducir",
-    recordingsOpenWith = "Abrir con…",
-    playerOff = "Apagado",
-    playerAudioTemplate = "Audio (%1\$d)",
-    playerSubtitlesTemplate = "Subtítulos (%1\$d)",
-
-    liveAllChannels = "Todos los canales",
-    liveZappingEyebrow = "ZAPPING",
-    liveOnAirPill = "EN VIVO",
-    liveThen = "después",
-    liveDayScheduleEyebrow = "PROGRAMA DEL DÍA",
-    liveNoEpgForChannel = "EPG no disponible para este canal.",
-    updateAvailableEyebrow = "ACTUALIZACIÓN DISPONIBLE",
-    updateLater = "Más tarde",
-    updateInstall = "Instalar",
-    updateDownloading = "Descargando…",
-    settingsTelemetryTitle = "Diagnósticos remotos",
-    settingsTelemetryHint = "Envía crashes y eventos al worker para depuración. Desactiva para detener toda telemetría.",
-    settingsCheckForUpdates = "Buscar actualizaciones",
-    settingsCheckingForUpdates = "Comprobando…",
-    settingsUpToDateTemplate = "Estás al día (v%s)",
-    settingsUpdateAvailableTemplate = "Actualización %s disponible",
-    backupEncryptHint = "El archivo exportado contiene tus credenciales Xtream / Stalker en texto plano. Pon una contraseña para cifrar el backup con AES-GCM (recomendado).",
-    backupEncryptFieldLabel = "Contraseña de cifrado (opcional)",
-    backupEncryptFieldPlaceholder = "Vacío para una exportación en claro",
-    liveChannelsCountTemplate = "%1\$d canales",
-    liveNoChannelsInCategory = "Sin canales en esta categoría.",
-    railOther = "Otros",
-    open = "Abrir",
-
-    sleepLabel = "Suspender",
-    sleepMin15 = "15 min",
-    sleepMin30 = "30 min",
-    sleep1h = "1 hora",
-    sleep2h = "2 horas",
-    sleepCancel = "Cancelar temporizador",
-    sleepReached = "Temporizador agotado — reproducción pausada",
-    recordingQueuedTemplate = "Grabación en cola (máx %1\$d min)",
-    statResolution = "Resolución",
-    statVideoCodec = "Códec vídeo",
-    statFrameRate = "Fotogramas/s",
-    statVideoBitrate = "Bitrate vídeo",
-    statAudioCodec = "Códec audio",
-    statAudioChannels = "Canales audio",
-    statBuffered = "Buffer",
-    statDroppedFrames = "Fotogramas perdidos",
-
-    toastBackupReady = "Copia lista — elige un archivo para guardarla.",
-    toastRestoredTemplate = "Restaurado: %1\$d proveedor(es), %2\$d favoritos, %3\$d entradas de historial",
-    toastRestoreFailed = "Error al restaurar: ",
-    toastRecordingQueued = "Grabación en cola — ver pantalla Grabaciones",
-
-    settingsTitle = "Ajustes", settingsDisplay = "Pantalla y reproducción",
-    settingsParental = "Control parental", settingsBackup = "Copia y restauración",
-    settingsLanguage = "Idioma", settingsTheme = "Tema",
-    settingsMenuPosition = "Posición del menú", settingsAutoSync = "Sync auto al inicio",
-    settingsRefreshPlaylists = "Actualizar listas",
-
-    movieDetailPlot = "Sinopsis", seriesDetailEpisodes = "Episodios",
-    moviesTitle = "Películas", seriesTitle = "Series",
-    noMovies = "Sin películas — añade un proveedor en ajustes y vuelve a sincronizar.",
-    noSeries = "Sin series — añade un proveedor en ajustes y vuelve a sincronizar.",
-
-    playerSleep = "Suspender", playerStats = "Stats", playerTracks = "Pistas",
-    playerDisplay = "Pantalla", playerExternal = "Reproductor externo",
-    playerCast = "Cast", playerRecord = "Grabar",
-    playerAspect = "Aspecto", playerSpeed = "Velocidad",
-    playerZapHint = "▲ ▼ para cambiar de canal",
-
-    searchPlaceholder = "Escribe para buscar canales, películas, series…",
-    searchRecent = "Recientes:", searchClear = "Limpiar",
-    searchNoMatches = "Sin coincidencias.",
-
-    recordingsTitle = "Grabaciones",
-    recordingsEmpty = "Aún no hay grabaciones. Abre una película o episodio y pulsa ⏺ Grabar.",
-    recordingStatusQueued = "En cola",
-    recordingStatusRunning = "Descargando…",
-    recordingStatusDone = "Guardado",
-    recordingStatusFailed = "Falló",
-    recordingStatusCancelled = "Cancelado",
-
-    live = "TV en vivo", movies = "Películas", series = "Series", categories = "Categorías",
-    tvGuide = "Guía TV", favorites = "Favoritos",
-    play = "Reproducir", resume = "Reanudar", cancel = "Cancelar", close = "Cerrar",
-    save = "Guardar", delete = "Eliminar", confirm = "Confirmar",
-    dismiss = "Descartar", change = "Cambiar",
-)
-
-private val AR = Strings(
-    navHome = "الرئيسية", navLive = "البث المباشر", navGuide = "الدليل", navMovies = "الأفلام",
-    navSeries = "المسلسلات", navFavorites = "المفضلة", navSearch = "بحث",
-    navCategories = "الفئات", navMultiview = "عرض متعدد",
-    navRecordings = "التسجيلات", navSettings = "الإعدادات",
-
-    homeWelcome = "مرحبًا بكم في Ultra TV",
-    homeSubtitle = "نسخة أصلية · جاهزة لجهاز التحكم",
-    homeContinueWatching = "متابعة المشاهدة",
-    homeRecentlyWatched = "شوهد مؤخرًا",
-    homeFeaturedChannels = "قنوات مميزة",
-    homeFeaturedMovies = "الأفلام",
-    homeFeaturedSeries = "المسلسلات",
-    onboardingMacLabel = "عنوان MAC للجهاز:",
-    onboardingOpenSettings = "فتح الإعدادات",
-    onboardingFirstTime = "الإعداد الأول",
-    onboardingTwoPaths = "طريقتان لإضافة موفّر:",
-    onboardingPathManual = "1. افتح الإعدادات ← +Xtream / +M3U / +M3U ملف / +Stalker واملأ النموذج.",
-    onboardingPathCloud = "2. استضف Cloudflare Worker من cloudflare-config/، ألصق عنوان MAC هذا في لوحة التحكم، ثم الإعدادات ← تعيين رابط الـ worker ← مزامنة من السحابة.",
-
-    parentalPinEnabled = "PIN الرقابة الأبوية: مفعّل (٤ أرقام)",
-    parentalPinNotSet = "PIN الرقابة الأبوية: غير محدد",
-    parentalSetPin = "تعيين PIN",
-    parentalChangePin = "تغيير PIN",
-    parentalClearPin = "مسح",
-    parentalManageLocked = "إدارة القنوات المقفلة…",
-    parentalSetTitle = "تعيين PIN الرقابة الأبوية",
-    parentalPinHint = "PIN (٤ أرقام)",
-    parentalConfirmHint = "تأكيد PIN",
-    parentalLockedTitle = "🔒 محتوى مقفل",
-    parentalEnterPin = "أدخل PIN الرقابة الأبوية للمتابعة.",
-    parentalWrongPin = "PIN غير صحيح.",
-    parentalUnlock = "فتح",
-
-    categoriesManage = "إدارة الفئات",
-    categoriesFilterHint = "تصفية أسماء الفئات…",
-    categoriesHideAll = "إخفاء كل المصفى",
-    categoriesShowAll = "إظهار كل المصفى",
-    categoriesHideAdult = "🔞 إخفاء الكبار",
-    categoriesResetAll = "إعادة تعيين الكل",
-    categoriesEmpty = "لا توجد فئات بعد — أضف موفّرًا وزامن.",
-    categoriesShow = "إظهار",
-    categoriesHide = "إخفاء",
-    categoriesCountTemplate = "%1\$d إجمالًا · %2\$d ظاهرة · %3\$d مخفية",
-
-    wizardWelcomeTitle = "👋 مرحبًا بك في Ultra TV",
-    wizardAddProviderTitle = "📡 إضافة موفّر",
-    wizardDoneTitle = "🎉 كل شيء جاهز",
-    wizardStepTemplate = "الخطوة %1\$d / %2\$d",
-    wizardIntro1 = "Ultra TV عميل IPTV أصلي لأندرويد TV. يدعم Xtream Codes وM3U / M3U8 وملفات M3U المحلية وStalker Portal.",
-    wizardIntro2 = "يستخدم Compose-TV للواجهة وMedia3 / ExoPlayer للتشغيل وRoom للكتالوج. التنقل بالريموت يعمل تلقائيًا.",
-    wizardTwoPaths = "طريقتان:",
-    wizardPathManual = "• الإعدادات ← +Xtream / +M3U URL / +M3U ملف / +Stalker. املأ النموذج.",
-    wizardPathCloud = "• أو افتح لوحة Cloudflare Worker، ألصق MAC أدناه، أضف الموفّرين، ثم الإعدادات ← مزامنة من السحابة.",
-    wizardTipsHead = "نصائح يمكنك العودة إليها لاحقًا:",
-    wizardTipDefault = "• ★ الموفّر الافتراضي يُحدَّد من الإعدادات.",
-    wizardTipSleep = "• 💤 مؤقت النوم + 📊 إحصائيات البث ضمن واجهة المشغل.",
-    wizardTipLock = "• 🔒 اقفل قنوات من الإعدادات ← الرقابة الأبوية.",
-    wizardTipBackup = "• 💾 النسخ الاحتياطي يصدّر الموفّرين + المفضلة + السجل بصيغة JSON.",
-    wizardTipGuide = "• 🗓 الدليل ← تحديث xmltv يجلب شبكة EPG لمدة 12 ساعة.",
-    wizardBack = "رجوع",
-    wizardNext = "التالي",
-    wizardAddProviderCta = "إضافة موفّر ←",
-    wizardSkip = "تخطٍّ الآن",
-
-    lockChannelsTitle = "قفل القنوات الفردية",
-    lockChannelsSubtitle = "القنوات المقفلة تتطلب PIN الرقابة الأبوية. %1\$d إجمالًا · %2\$d مقفلة",
-    lockChannelsFilterHint = "تصفية القنوات…",
-    lockChannelsLock = "قفل",
-    lockChannelsUnlock = "فتح",
-
-    guideClickHint = "اضغط قناة لتحميل برامجها التالية.",
-    guideLoadingEpg = "جاري تحميل EPG…",
-    guideProgrammesTemplate = "%1\$d برنامج محمَّل · %2\$d قناة",
-    guideLoading = "جاري التحميل…",
-    guideRefreshXmltv = "تحديث xmltv",
-    guideNoChannels = "لا توجد قنوات — أضف موفّرًا من الإعدادات.",
-
-    addProviderAdd = "إضافة",
-    addProviderXtreamTitle = "إضافة موفّر Xtream Codes",
-    addProviderM3uTitle = "إضافة قائمة M3U",
-    addProviderStalkerTitle = "إضافة بوابة Stalker",
-    fieldNameOptional = "الاسم (اختياري)",
-    fieldServerUrl = "رابط الخادم (http://host:port)",
-    fieldUsername = "اسم المستخدم",
-    fieldPassword = "كلمة المرور",
-    fieldPlaylistUrl = "رابط القائمة",
-    fieldPortalUrl = "رابط البوابة",
-    fieldDeviceMac = "MAC الجهاز (XX:XX:XX:XX:XX:XX)",
-
-    settingsAutoImportTitle = "📡 استيراد تلقائي بواسطة MAC",
-    settingsYourMac = "MAC الخاص بك:",
-    settingsMacHint = "افتح لوحة Worker، ألصق هذا MAC، أضف الموفّرين ثم اضغط مزامنة.",
-    settingsConfigPasswordLabel = "كلمة مرور الإعداد: ",
-    settingsConfigPasswordNone = "(لا توجد — أي شخص يملك MAC يستطيع قراءتها)",
-    settingsSet = "تعيين",
-    settingsSyncing = "جارٍ العمل…",
-    settingsSyncFromCloud = "مزامنة من السحابة",
-    settingsAddProviderTitle = "➕ إضافة موفّر",
-    settingsAddProviderHint = "اضغط زرًا لفتح النموذج. لوحة المفاتيح تظهر فقط داخل النافذة — لن تعترضك أثناء التمرير.",
-    settingsAddXtream = "+ Xtream Codes",
-    settingsAddM3uUrl = "+ رابط M3U",
-    settingsAddM3uFile = "+ ملف M3U…",
-    settingsAddStalker = "+ بوابة Stalker",
-    settingsConfiguredHeader = "الموفّرون المهيّأون",
-    settingsNoneYet = "(لا يوجد بعد)",
-    settingsDefaultBadge = "★ افتراضي",
-    settingsSetDefault = "تعيين كافتراضي",
-    settingsResync = "إعادة مزامنة",
-    settingsBackupTitle = "💾 النسخ الاحتياطي والاستعادة",
-    settingsBackupHint = "يصدّر الموفّرين والمفضلة والسجل إلى ملف JSON تختاره. الكتالوجات (قنوات/أفلام/مسلسلات) تُحمَّل عبر المزامنة، وليست مضمّنة.",
-    settingsBackupExport = "تصدير النسخة",
-    settingsBackupImport = "استيراد نسخة…",
-    settingsParentalHint = "عند تعيين PIN تُقفل الفئات الكبيرة (xxx / adult / 18+ / إلخ) تلقائيًا عند كل مزامنة.",
-    settingsConfigPwdDialogTitle = "كلمة مرور الإعداد",
-    settingsConfigPwdDialogHint = "يمكن حماية إعداد كل MAC بكلمة مرور. أدخل القيمة التي حدّدها المسؤول. اتركها فارغة لعدم إرسال كلمة مرور (تعمل فقط مع MAC غير محمي).",
-    settingsConfigPwdFieldLabel = "كلمة المرور (مرئية — مناسبة للريموت)",
-    settingsConfigPwdFieldPlaceholder = "اتركها فارغة لمسحها",
-    settingsWorkerDialogTitle = "ضبط رابط Cloudflare Worker",
-    settingsWorkerDialogHint = "كل مستخدم ينشر Worker الخاص به (cloudflare-config/) ويلصق رابطه هنا. لا نضمّن أي رابط افتراضي تجنبًا لتسريب رابطك عبر الشيفرة.",
-    settingsWorkerFieldLabel = "رابط Worker الأساسي (مثال https://your-config.your-acct.workers.dev)",
-    toastBackupSaved = "تم حفظ النسخة",
-    toastSaveFailed = "فشل الحفظ: ",
-    toastEmptyFile = "ملف فارغ أو غير مقروء",
-    toastConfigPasswordSaved = "تم حفظ كلمة المرور",
-
-    prefSidebar = "الشريط الجانبي",
-    prefTopBar = "الشريط العلوي",
-    prefThemeDark = "داكن",
-    prefThemeAmoled = "AMOLED",
-    prefThemeBlue = "أزرق",
-    prefDefaultPlayer = "المشغّل الافتراضي",
-    prefPlayerInternal = "داخلي (Media3)",
-    prefPlayerExternal = "خارجي (VLC / MX)",
-    prefAutoSyncHint = "إعادة تحميل كتالوجات الموفّر مع كل تشغيل.",
-    prefShowChannelNumbers = "إظهار أرقام القنوات",
-    prefShowChannelNumbersHint = "إظهار رقم القناة بجانب كل قناة في البث المباشر.",
-    prefHideAdult = "إخفاء فئات الكبار",
-    prefHideAdultHint = "إزالة فئات الكبار من القوائم تمامًا (أوسع من قفل PIN).",
-    prefResume = "متابعة التشغيل",
-    prefResumeHint = "إعادة فتح الأفلام/الحلقات من حيث توقفت.",
-    prefAutoPlayNext = "تشغيل تلقائي للحلقة التالية",
-    prefAutoPlayNextHint = "تشغيل S0xE0y+1 تلقائيًا عند انتهاء الحلقة.",
-    prefLaunchAtBoot = "التشغيل عند إقلاع التلفاز",
-    prefLaunchAtBootHint = "فتح Ultra TV تلقائيًا عند انتهاء إقلاع الجهاز.",
-    prefAutoPlayLast = "تشغيل آخر مشاهدة عند البدء",
-    prefAutoPlayLastHint = "استئناف آخر قناة / فيلم / حلقة عند تشغيل التطبيق.",
-    prefIntervalLaunch = "كل تشغيل",
-    prefInterval6 = "كل 6 ساعات",
-    prefInterval12 = "كل 12 ساعة",
-    prefInterval24 = "كل 24 ساعة",
-
-    favoritesEmpty = "لا توجد مفضلة بعد — افتح فيلمًا أو مسلسلًا واضغط ☆.",
-    favoritesMoviesSection = "الأفلام — %1\$d",
-    favoritesSeriesSection = "المسلسلات — %1\$d",
-    detailLoading = "جاري التحميل…",
-    seriesNoEpisodes = "لا توجد حلقات متاحة.",
-    multiViewTitle = "عرض متعدد",
-    multiViewHint = "اضغط مربعًا لإسناد قناة. ENTER يتنقّل بين المربعات.",
-    multiViewPickTemplate = "اختر قناة للمربع %1\$d:",
-    recordingsPlay = "تشغيل",
-    recordingsOpenWith = "فتح باستخدام…",
-    playerOff = "إيقاف",
-    playerAudioTemplate = "صوت (%1\$d)",
-    playerSubtitlesTemplate = "ترجمات (%1\$d)",
-
-    liveAllChannels = "كل القنوات",
-    liveZappingEyebrow = "تنقّل",
-    liveOnAirPill = "مباشر",
-    liveThen = "ثم",
-    liveDayScheduleEyebrow = "برنامج اليوم",
-    liveNoEpgForChannel = "لا يوجد دليل برامج لهذه القناة.",
-    updateAvailableEyebrow = "تحديث متاح",
-    updateLater = "لاحقا",
-    updateInstall = "تثبيت",
-    updateDownloading = "جار التنزيل…",
-    settingsTelemetryTitle = "التشخيص عن بعد",
-    settingsTelemetryHint = "إرسال سجلات الأعطال والأحداث إلى الخادم للتشخيص. إيقاف = لا قياس عن بعد.",
-    settingsCheckForUpdates = "البحث عن تحديثات",
-    settingsCheckingForUpdates = "جار الفحص…",
-    settingsUpToDateTemplate = "أنت على أحدث إصدار (v%s)",
-    settingsUpdateAvailableTemplate = "التحديث %s متاح",
-    backupEncryptHint = "الملف المُصدَّر يحتوي على بيانات اعتماد Xtream / Stalker بدون تشفير. أدخل كلمة مرور لتشفير النسخة الاحتياطية بـ AES-GCM (موصى به).",
-    backupEncryptFieldLabel = "كلمة مرور التشفير (اختياري)",
-    backupEncryptFieldPlaceholder = "اتركها فارغة لتصدير بدون تشفير",
-    liveChannelsCountTemplate = "%1\$d قناة",
-    liveNoChannelsInCategory = "لا توجد قنوات في هذه الفئة.",
-    railOther = "أخرى",
-    open = "فتح",
-
-    sleepLabel = "النوم",
-    sleepMin15 = "15 دقيقة",
-    sleepMin30 = "30 دقيقة",
-    sleep1h = "ساعة",
-    sleep2h = "ساعتان",
-    sleepCancel = "إلغاء المؤقت",
-    sleepReached = "انتهى مؤقت النوم — أُوقف التشغيل",
-    recordingQueuedTemplate = "التسجيل في الانتظار (بحد أقصى %1\$d د)",
-    statResolution = "الدقة",
-    statVideoCodec = "كودك الفيديو",
-    statFrameRate = "معدل الإطارات",
-    statVideoBitrate = "بِت فيديو",
-    statAudioCodec = "كودك الصوت",
-    statAudioChannels = "قنوات الصوت",
-    statBuffered = "المخزن المؤقت",
-    statDroppedFrames = "الإطارات المفقودة",
-
-    toastBackupReady = "النسخة جاهزة — اختر ملفًا لحفظها.",
-    toastRestoredTemplate = "تمت الاستعادة: %1\$d موفّر، %2\$d مفضّل، %3\$d إدخالًا في السجل",
-    toastRestoreFailed = "فشلت الاستعادة: ",
-    toastRecordingQueued = "التسجيل في الانتظار — راجع شاشة التسجيلات",
-
-    settingsTitle = "الإعدادات", settingsDisplay = "العرض والتشغيل",
-    settingsParental = "الرقابة الأبوية", settingsBackup = "النسخ الاحتياطي والاستعادة",
-    settingsLanguage = "اللغة", settingsTheme = "السمة",
-    settingsMenuPosition = "موضع القائمة", settingsAutoSync = "المزامنة التلقائية عند البدء",
-    settingsRefreshPlaylists = "تحديث القوائم",
-
-    movieDetailPlot = "القصة", seriesDetailEpisodes = "الحلقات",
-    moviesTitle = "الأفلام", seriesTitle = "المسلسلات",
-    noMovies = "لا توجد أفلام — أضف موفّرًا من الإعدادات ثم زامن.",
-    noSeries = "لا توجد مسلسلات — أضف موفّرًا من الإعدادات ثم زامن.",
-
-    playerSleep = "مؤقت النوم", playerStats = "إحصائيات", playerTracks = "المسارات",
-    playerDisplay = "العرض", playerExternal = "مشغّل خارجي",
-    playerCast = "بث", playerRecord = "تسجيل",
-    playerAspect = "نسبة العرض", playerSpeed = "السرعة",
-    playerZapHint = "▲ ▼ لتغيير القناة",
-
-    searchPlaceholder = "اكتب للبحث عن قنوات، أفلام، مسلسلات…",
-    searchRecent = "الأخيرة:", searchClear = "مسح",
-    searchNoMatches = "لا توجد نتائج.",
-
-    recordingsTitle = "التسجيلات",
-    recordingsEmpty = "لا توجد تسجيلات بعد. افتح فيلمًا أو حلقة واضغط ⏺ تسجيل.",
-    recordingStatusQueued = "في الانتظار",
-    recordingStatusRunning = "جاري التحميل…",
-    recordingStatusDone = "محفوظ",
-    recordingStatusFailed = "فشل",
-    recordingStatusCancelled = "أُلغي",
-
-    live = "البث المباشر", movies = "الأفلام", series = "المسلسلات", categories = "الفئات",
-    tvGuide = "دليل التلفاز", favorites = "المفضلة",
-    play = "تشغيل", resume = "استئناف", cancel = "إلغاء", close = "إغلاق",
-    save = "حفظ", delete = "حذف", confirm = "تأكيد",
-    dismiss = "إهمال", change = "تغيير",
-)
+class Strings {
+    var navHome: String = ""
+    var navLive: String = ""
+    var navGuide: String = ""
+    var navMovies: String = ""
+    var navSeries: String = ""
+    var navFavorites: String = ""
+    var navSearch: String = ""
+    var navCategories: String = ""
+    var navMultiview: String = ""
+    var navRecordings: String = ""
+    var navSettings: String = ""
+    var homeWelcome: String = ""
+    var homeSubtitle: String = ""
+    var homeContinueWatching: String = ""
+    var homeRecentlyWatched: String = ""
+    var homeFeaturedChannels: String = ""
+    var homeFeaturedMovies: String = ""
+    var homeFeaturedSeries: String = ""
+    var onboardingMacLabel: String = ""
+    var onboardingOpenSettings: String = ""
+    var onboardingFirstTime: String = ""
+    var onboardingTwoPaths: String = ""
+    var onboardingPathManual: String = ""
+    var onboardingPathCloud: String = ""
+    var parentalPinEnabled: String = ""
+    var parentalPinNotSet: String = ""
+    var parentalSetPin: String = ""
+    var parentalChangePin: String = ""
+    var parentalClearPin: String = ""
+    var parentalManageLocked: String = ""
+    var parentalSetTitle: String = ""
+    var parentalPinHint: String = ""
+    var parentalConfirmHint: String = ""
+    var parentalLockedTitle: String = ""
+    var parentalEnterPin: String = ""
+    var parentalWrongPin: String = ""
+    var parentalUnlock: String = ""
+    var categoriesManage: String = ""
+    var categoriesFilterHint: String = ""
+    var categoriesHideAll: String = ""
+    var categoriesShowAll: String = ""
+    var categoriesHideAdult: String = ""
+    var categoriesResetAll: String = ""
+    var categoriesEmpty: String = ""
+    var categoriesShow: String = ""
+    var categoriesHide: String = ""
+    var categoriesCountTemplate: String = ""
+    var wizardWelcomeTitle: String = ""
+    var wizardAddProviderTitle: String = ""
+    var wizardDoneTitle: String = ""
+    var wizardStepTemplate: String = ""
+    var wizardIntro1: String = ""
+    var wizardIntro2: String = ""
+    var wizardTwoPaths: String = ""
+    var wizardPathManual: String = ""
+    var wizardPathCloud: String = ""
+    var wizardTipsHead: String = ""
+    var wizardTipDefault: String = ""
+    var wizardTipSleep: String = ""
+    var wizardTipLock: String = ""
+    var wizardTipBackup: String = ""
+    var wizardTipGuide: String = ""
+    var wizardBack: String = ""
+    var wizardNext: String = ""
+    var wizardAddProviderCta: String = ""
+    var wizardSkip: String = ""
+    var lockChannelsTitle: String = ""
+    var lockChannelsSubtitle: String = ""
+    var lockChannelsFilterHint: String = ""
+    var lockChannelsLock: String = ""
+    var lockChannelsUnlock: String = ""
+    var guideClickHint: String = ""
+    var guideLoadingEpg: String = ""
+    var guideProgrammesTemplate: String = ""
+    var guideLoading: String = ""
+    var guideRefreshXmltv: String = ""
+    var guideNoChannels: String = ""
+    var addProviderAdd: String = ""
+    var addProviderXtreamTitle: String = ""
+    var addProviderM3uTitle: String = ""
+    var addProviderStalkerTitle: String = ""
+    var fieldNameOptional: String = ""
+    var fieldServerUrl: String = ""
+    var fieldUsername: String = ""
+    var fieldPassword: String = ""
+    var fieldPlaylistUrl: String = ""
+    var fieldPortalUrl: String = ""
+    var fieldDeviceMac: String = ""
+    var settingsAutoImportTitle: String = ""
+    var settingsYourMac: String = ""
+    var settingsMacHint: String = ""
+    var settingsConfigPasswordLabel: String = ""
+    var settingsConfigPasswordNone: String = ""
+    var settingsSet: String = ""
+    var settingsSyncing: String = ""
+    var settingsSyncFromCloud: String = ""
+    var settingsAddProviderTitle: String = ""
+    var settingsAddProviderHint: String = ""
+    var settingsAddXtream: String = ""
+    var settingsAddM3uUrl: String = ""
+    var settingsAddM3uFile: String = ""
+    var settingsAddStalker: String = ""
+    var settingsConfiguredHeader: String = ""
+    var settingsNoneYet: String = ""
+    var settingsDefaultBadge: String = ""
+    var settingsSetDefault: String = ""
+    var settingsResync: String = ""
+    var settingsBackupTitle: String = ""
+    var settingsBackupHint: String = ""
+    var settingsBackupExport: String = ""
+    var settingsBackupImport: String = ""
+    var settingsParentalHint: String = ""
+    var settingsConfigPwdDialogTitle: String = ""
+    var settingsConfigPwdDialogHint: String = ""
+    var settingsConfigPwdFieldLabel: String = ""
+    var settingsConfigPwdFieldPlaceholder: String = ""
+    var settingsWorkerDialogTitle: String = ""
+    var settingsWorkerDialogHint: String = ""
+    var settingsWorkerFieldLabel: String = ""
+    var toastBackupSaved: String = ""
+    var toastSaveFailed: String = ""
+    var toastEmptyFile: String = ""
+    var toastConfigPasswordSaved: String = ""
+    var prefSidebar: String = ""
+    var prefTopBar: String = ""
+    var prefThemeDark: String = ""
+    var prefThemeAmoled: String = ""
+    var prefThemeBlue: String = ""
+    var prefDefaultPlayer: String = ""
+    var prefPlayerInternal: String = ""
+    var prefPlayerExternal: String = ""
+    var prefAutoSyncHint: String = ""
+    var prefShowChannelNumbers: String = ""
+    var prefShowChannelNumbersHint: String = ""
+    var prefHideAdult: String = ""
+    var prefHideAdultHint: String = ""
+    var prefResume: String = ""
+    var prefResumeHint: String = ""
+    var prefAutoPlayNext: String = ""
+    var prefAutoPlayNextHint: String = ""
+    var prefLaunchAtBoot: String = ""
+    var prefLaunchAtBootHint: String = ""
+    var prefAutoPlayLast: String = ""
+    var prefAutoPlayLastHint: String = ""
+    var prefIntervalLaunch: String = ""
+    var prefInterval6: String = ""
+    var prefInterval12: String = ""
+    var prefInterval24: String = ""
+    var favoritesEmpty: String = ""
+    var favoritesMoviesSection: String = ""
+    var favoritesSeriesSection: String = ""
+    var detailLoading: String = ""
+    var seriesNoEpisodes: String = ""
+    var multiViewTitle: String = ""
+    var multiViewHint: String = ""
+    var multiViewPickTemplate: String = ""
+    var recordingsPlay: String = ""
+    var recordingsOpenWith: String = ""
+    var playerOff: String = ""
+    var playerAudioTemplate: String = ""
+    var playerSubtitlesTemplate: String = ""
+    var liveAllChannels: String = ""
+    var liveChannelsCountTemplate: String = ""
+    var liveNoChannelsInCategory: String = ""
+    var liveZappingEyebrow: String = ""
+    var liveOnAirPill: String = ""
+    var liveThen: String = ""
+    var liveDayScheduleEyebrow: String = ""
+    var liveNoEpgForChannel: String = ""
+    var updateAvailableEyebrow: String = ""
+    var updateLater: String = ""
+    var updateInstall: String = ""
+    var updateDownloading: String = ""
+    var settingsTelemetryTitle: String = ""
+    var settingsTelemetryHint: String = ""
+    var settingsCheckForUpdates: String = ""
+    var settingsCheckingForUpdates: String = ""
+    var settingsUpToDateTemplate: String = ""
+    var settingsUpdateAvailableTemplate: String = ""
+    var backupEncryptHint: String = ""
+    var backupEncryptFieldLabel: String = ""
+    var backupEncryptFieldPlaceholder: String = ""
+    var railOther: String = ""
+    var open: String = ""
+    var sleepLabel: String = ""
+    var sleepMin15: String = ""
+    var sleepMin30: String = ""
+    var sleep1h: String = ""
+    var sleep2h: String = ""
+    var sleepCancel: String = ""
+    var sleepReached: String = ""
+    var recordingQueuedTemplate: String = ""
+    var statResolution: String = ""
+    var statVideoCodec: String = ""
+    var statFrameRate: String = ""
+    var statVideoBitrate: String = ""
+    var statAudioCodec: String = ""
+    var statAudioChannels: String = ""
+    var statBuffered: String = ""
+    var statDroppedFrames: String = ""
+    var toastBackupReady: String = ""
+    var toastRestoredTemplate: String = ""
+    var toastRestoreFailed: String = ""
+    var toastRecordingQueued: String = ""
+    var settingsTitle: String = ""
+    var settingsDisplay: String = ""
+    var settingsParental: String = ""
+    var settingsBackup: String = ""
+    var settingsLanguage: String = ""
+    var settingsTheme: String = ""
+    var settingsMenuPosition: String = ""
+    var settingsAutoSync: String = ""
+    var settingsRefreshPlaylists: String = ""
+    var movieDetailPlot: String = ""
+    var seriesDetailEpisodes: String = ""
+    var moviesTitle: String = ""
+    var seriesTitle: String = ""
+    var noMovies: String = ""
+    var noSeries: String = ""
+    var playerSleep: String = ""
+    var playerStats: String = ""
+    var playerTracks: String = ""
+    var playerDisplay: String = ""
+    var playerExternal: String = ""
+    var playerCast: String = ""
+    var playerRecord: String = ""
+    var playerAspect: String = ""
+    var playerSpeed: String = ""
+    var playerZapHint: String = ""
+    var searchPlaceholder: String = ""
+    var searchRecent: String = ""
+    var searchClear: String = ""
+    var searchNoMatches: String = ""
+    var recordingsTitle: String = ""
+    var recordingsEmpty: String = ""
+    var recordingStatusQueued: String = ""
+    var recordingStatusRunning: String = ""
+    var recordingStatusDone: String = ""
+    var recordingStatusFailed: String = ""
+    var recordingStatusCancelled: String = ""
+    var live: String = ""
+    var movies: String = ""
+    var series: String = ""
+    var categories: String = ""
+    var tvGuide: String = ""
+    var favorites: String = ""
+    var play: String = ""
+    var resume: String = ""
+    var cancel: String = ""
+    var close: String = ""
+    var save: String = ""
+    var delete: String = ""
+    var confirm: String = ""
+    var dismiss: String = ""
+    var change: String = ""
+}
+
+private val EN = Strings().apply {
+    navHome = "Home"
+    navLive = "Live TV"
+    navGuide = "Guide"
+    navMovies = "Movies"
+    navSeries = "Series"
+    navFavorites = "Favorites"
+    navSearch = "Search"
+    navCategories = "Categories"
+    navMultiview = "Multi-View"
+    navRecordings = "Recordings"
+    navSettings = "Settings"
+    homeWelcome = "Welcome to Ultra TV"
+    homeSubtitle = "Native build · D-pad ready"
+    homeContinueWatching = "Continue watching"
+    homeRecentlyWatched = "Recently watched"
+    homeFeaturedChannels = "Featured channels"
+    homeFeaturedMovies = "Movies"
+    homeFeaturedSeries = "Series"
+    onboardingMacLabel = "Your device MAC:"
+    onboardingOpenSettings = "Open Settings"
+    onboardingFirstTime = "First-time setup"
+    onboardingTwoPaths = "Two paths to add a provider:"
+    onboardingPathManual = "1. Open Settings → +Xtream / +M3U / +M3U file / +Stalker, fill in the form."
+    onboardingPathCloud = "2. Self-host the Cloudflare Worker from cloudflare-config/, paste this MAC in its dashboard, then in Settings → Set worker URL → Sync from cloud."
+    parentalPinEnabled = "Parental PIN: enabled (4-digit)"
+    parentalPinNotSet = "Parental PIN: not set"
+    parentalSetPin = "Set PIN"
+    parentalChangePin = "Change PIN"
+    parentalClearPin = "Clear"
+    parentalManageLocked = "Manage locked channels…"
+    parentalSetTitle = "Set parental PIN"
+    parentalPinHint = "PIN (4 digits)"
+    parentalConfirmHint = "Confirm PIN"
+    parentalLockedTitle = "🔒 Locked content"
+    parentalEnterPin = "Enter your parental PIN to continue."
+    parentalWrongPin = "Wrong PIN."
+    parentalUnlock = "Unlock"
+    categoriesManage = "Manage categories"
+    categoriesFilterHint = "Filter category names…"
+    categoriesHideAll = "Hide all filtered"
+    categoriesShowAll = "Show all filtered"
+    categoriesHideAdult = "🔞 Hide adult"
+    categoriesResetAll = "Reset everything"
+    categoriesEmpty = "No categories yet — add a provider and re-sync."
+    categoriesShow = "Show"
+    categoriesHide = "Hide"
+    categoriesCountTemplate = "%1\$d total · %2\$d shown · %3\$d hidden"
+    wizardWelcomeTitle = "👋 Welcome to Ultra TV"
+    wizardAddProviderTitle = "📡 Add a provider"
+    wizardDoneTitle = "🎉 You're set"
+    wizardStepTemplate = "Step %1\$d / %2\$d"
+    wizardIntro1 = "Ultra TV is a native Android-TV IPTV client. It speaks Xtream Codes, M3U / M3U8, M3U files from local storage, and Stalker Portal."
+    wizardIntro2 = "It uses Compose-TV for the UI, Media3 / ExoPlayer for playback, Room for the catalog. D-pad navigation works out of the box."
+    wizardTwoPaths = "Two paths:"
+    wizardPathManual = "• Settings → +Xtream / +M3U URL / +M3U file / +Stalker. Fill in the form."
+    wizardPathCloud = "• Or open your Cloudflare Worker dashboard, paste the MAC below, add your providers there, then Settings → Sync from cloud."
+    wizardTipsHead = "Tips you can come back to anytime:"
+    wizardTipDefault = "• ★ Default provider switching is in Settings."
+    wizardTipSleep = "• 💤 Sleep timer + 📊 Stream stats live in the player overlay."
+    wizardTipLock = "• 🔒 Lock individual channels via Settings → Parental."
+    wizardTipBackup = "• 💾 Backup & restore exports providers + favorites + history as JSON."
+    wizardTipGuide = "• 🗓 Guide → Refresh xmltv pulls a 12 h EPG grid."
+    wizardBack = "Back"
+    wizardNext = "Next"
+    wizardAddProviderCta = "Add a provider →"
+    wizardSkip = "Skip for now"
+    lockChannelsTitle = "Lock individual channels"
+    lockChannelsSubtitle = "Locked channels need the parental PIN to play. %1\$d total · %2\$d locked"
+    lockChannelsFilterHint = "Filter channels…"
+    lockChannelsLock = "Lock"
+    lockChannelsUnlock = "Unlock"
+    guideClickHint = "Click a channel to load its next programmes."
+    guideLoadingEpg = "Loading EPG…"
+    guideProgrammesTemplate = "%1\$d programmes loaded · %2\$d channels"
+    guideLoading = "Loading…"
+    guideRefreshXmltv = "Refresh xmltv"
+    guideNoChannels = "No channels — add a provider in Settings."
+    addProviderAdd = "Add"
+    addProviderXtreamTitle = "Add Xtream Codes provider"
+    addProviderM3uTitle = "Add M3U playlist"
+    addProviderStalkerTitle = "Add Stalker portal"
+    fieldNameOptional = "Name (optional)"
+    fieldServerUrl = "Server URL (http://host:port)"
+    fieldUsername = "Username"
+    fieldPassword = "Password"
+    fieldPlaylistUrl = "Playlist URL"
+    fieldPortalUrl = "Portal URL"
+    fieldDeviceMac = "Device MAC (XX:XX:XX:XX:XX:XX)"
+    settingsAutoImportTitle = "📡 Auto-import via device MAC"
+    settingsYourMac = "Your MAC:"
+    settingsMacHint = "Open your worker dashboard, paste this MAC, add your providers there, then press Sync."
+    settingsConfigPasswordLabel = "Config password: "
+    settingsConfigPasswordNone = "(none — anyone with the MAC reads it)"
+    settingsSet = "Set"
+    settingsSyncing = "Working…"
+    settingsSyncFromCloud = "Sync from cloud"
+    settingsAddProviderTitle = "➕ Add a provider"
+    settingsAddProviderHint = "Tap a button to open the form. The IME only shows up inside the dialog — you won't trip on it while scrolling Settings."
+    settingsAddXtream = "+ Xtream Codes"
+    settingsAddM3uUrl = "+ M3U URL"
+    settingsAddM3uFile = "+ M3U file…"
+    settingsAddStalker = "+ Stalker portal"
+    settingsConfiguredHeader = "Configured providers"
+    settingsNoneYet = "(none yet)"
+    settingsDefaultBadge = "★ Default"
+    settingsSetDefault = "Set default"
+    settingsResync = "Re-sync"
+    settingsBackupTitle = "💾 Backup & restore"
+    settingsBackupHint = "Exports providers, favorites and watch history to a JSON file you choose. Catalogs (channels / movies / series) are re-fetched via sync, not bundled."
+    settingsBackupExport = "Export backup"
+    settingsBackupImport = "Import backup…"
+    settingsParentalHint = "When a PIN is set, adult categories (xxx / adult / 18+ / etc.) auto-lock on each sync."
+    settingsConfigPwdDialogTitle = "Config password"
+    settingsConfigPwdDialogHint = "Each MAC's config on the worker can be protected by a password. Set the same value the admin set when provisioning your MAC. Leave blank to send no password (works only for unprotected MACs)."
+    settingsConfigPwdFieldLabel = "Password (visible — TV remote-friendly)"
+    settingsConfigPwdFieldPlaceholder = "Leave blank to clear"
+    settingsWorkerDialogTitle = "Set Cloudflare Worker URL"
+    settingsWorkerDialogHint = "Each user deploys their own Worker (cloudflare-config/) and pastes its URL here. We never bundle a default URL in the app to avoid leaking yours through the source code."
+    settingsWorkerFieldLabel = "Worker base URL (e.g. https://your-config.your-acct.workers.dev)"
+    toastBackupSaved = "Backup saved"
+    toastSaveFailed = "Save failed: "
+    toastEmptyFile = "Empty / unreadable file"
+    toastConfigPasswordSaved = "Config password saved"
+    prefSidebar = "Sidebar"
+    prefTopBar = "Top bar"
+    prefThemeDark = "Dark"
+    prefThemeAmoled = "AMOLED"
+    prefThemeBlue = "Blue"
+    prefDefaultPlayer = "Default player"
+    prefPlayerInternal = "Internal (Media3)"
+    prefPlayerExternal = "External (VLC / MX)"
+    prefAutoSyncHint = "Pull provider catalogs every time the app starts."
+    prefShowChannelNumbers = "Show channel numbers"
+    prefShowChannelNumbersHint = "Display the position number next to each channel in Live TV."
+    prefHideAdult = "Hide adult categories"
+    prefHideAdultHint = "Completely remove adult categories from lists (beyond PIN lock)."
+    prefResume = "Resume playback"
+    prefResumeHint = "Reopen movies/episodes at the position you left them."
+    prefAutoPlayNext = "Auto-play next episode"
+    prefAutoPlayNextHint = "Automatically play S0xE0y+1 when an episode ends."
+    prefLaunchAtBoot = "Launch at TV boot"
+    prefLaunchAtBootHint = "Open Ultra TV automatically when the box finishes booting."
+    prefAutoPlayLast = "Auto-play last watched on launch"
+    prefAutoPlayLastHint = "Resume the last channel / movie / episode when the app starts."
+    prefIntervalLaunch = "Every launch"
+    prefInterval6 = "Every 6h"
+    prefInterval12 = "Every 12h"
+    prefInterval24 = "Every 24h"
+    favoritesEmpty = "Nothing favorited yet — open a movie or series and tap ☆."
+    favoritesMoviesSection = "Movies — %1\$d"
+    favoritesSeriesSection = "Series — %1\$d"
+    detailLoading = "Loading…"
+    seriesNoEpisodes = "No episodes available."
+    multiViewTitle = "Multi-View"
+    multiViewHint = "Tap a tile to assign a channel. ENTER cycles through tiles."
+    multiViewPickTemplate = "Choose a channel for tile %1\$d:"
+    recordingsPlay = "Play"
+    recordingsOpenWith = "Open with…"
+    playerOff = "Off"
+    playerAudioTemplate = "Audio (%1\$d)"
+    playerSubtitlesTemplate = "Subtitles (%1\$d)"
+    liveAllChannels = "All channels"
+    liveZappingEyebrow = "ZAPPING"
+    liveOnAirPill = "ON AIR"
+    liveThen = "then"
+    liveDayScheduleEyebrow = "TODAY'S SCHEDULE"
+    liveNoEpgForChannel = "No EPG available for this channel."
+    updateAvailableEyebrow = "UPDATE AVAILABLE"
+    updateLater = "Later"
+    updateInstall = "Install now"
+    updateDownloading = "Downloading…"
+    settingsTelemetryTitle = "Remote diagnostics"
+    settingsTelemetryHint = "Send crash + event logs to the worker for debugging. Off = no outbound telemetry."
+    settingsCheckForUpdates = "Check for updates"
+    settingsCheckingForUpdates = "Checking…"
+    settingsUpToDateTemplate = "You are up to date (v%s)"
+    settingsUpdateAvailableTemplate = "Update %s available"
+    backupEncryptHint = "The exported file contains your Xtream / Stalker credentials in clear text. Set a password to encrypt the backup with AES-GCM (recommended)."
+    backupEncryptFieldLabel = "Encryption password (optional)"
+    backupEncryptFieldPlaceholder = "Leave empty for a plain export"
+    liveChannelsCountTemplate = "%1\$d channels"
+    liveNoChannelsInCategory = "No channels in this category."
+    railOther = "Other"
+    open = "Open"
+    sleepLabel = "Sleep"
+    sleepMin15 = "15 min"
+    sleepMin30 = "30 min"
+    sleep1h = "1 hour"
+    sleep2h = "2 hours"
+    sleepCancel = "Cancel timer"
+    sleepReached = "Sleep timer reached — playback paused"
+    recordingQueuedTemplate = "Recording queued (max %1\$d min)"
+    statResolution = "Resolution"
+    statVideoCodec = "Video codec"
+    statFrameRate = "Frame rate"
+    statVideoBitrate = "Video bitrate"
+    statAudioCodec = "Audio codec"
+    statAudioChannels = "Audio channels"
+    statBuffered = "Buffered"
+    statDroppedFrames = "Dropped frames"
+    toastBackupReady = "Backup ready — pick a file to save it."
+    toastRestoredTemplate = "Restored %1\$d provider(s), %2\$d fav, %3\$d watch entries"
+    toastRestoreFailed = "Restore failed: "
+    toastRecordingQueued = "Recording queued — see Recordings screen"
+    settingsTitle = "Settings"
+    settingsDisplay = "Display & playback"
+    settingsParental = "Parental controls"
+    settingsBackup = "Backup & restore"
+    settingsLanguage = "Language"
+    settingsTheme = "Theme"
+    settingsMenuPosition = "Menu position"
+    settingsAutoSync = "Auto-sync on launch"
+    settingsRefreshPlaylists = "Refresh playlists"
+    movieDetailPlot = "Plot"
+    seriesDetailEpisodes = "Episodes"
+    moviesTitle = "Movies"
+    seriesTitle = "Series"
+    noMovies = "No movies — add a provider in Settings and re-sync."
+    noSeries = "No series — add a provider in Settings and re-sync."
+    playerSleep = "Sleep"
+    playerStats = "Stats"
+    playerTracks = "Tracks"
+    playerDisplay = "Display"
+    playerExternal = "External player"
+    playerCast = "Cast"
+    playerRecord = "Record"
+    playerAspect = "Aspect"
+    playerSpeed = "Speed"
+    playerZapHint = "▲ ▼ to zap channels"
+    searchPlaceholder = "Type to search channels, movies, series…"
+    searchRecent = "Recent:"
+    searchClear = "Clear"
+    searchNoMatches = "No matches."
+    recordingsTitle = "Recordings"
+    recordingsEmpty = "No recordings yet. Open a movie or episode and press the ⏺ Record button to queue a download."
+    recordingStatusQueued = "Queued"
+    recordingStatusRunning = "Downloading…"
+    recordingStatusDone = "Saved"
+    recordingStatusFailed = "Failed"
+    recordingStatusCancelled = "Cancelled"
+    live = "Live TV"
+    movies = "Movies"
+    series = "Series"
+    categories = "Categories"
+    tvGuide = "TV Guide"
+    favorites = "Favorites"
+    play = "Play"
+    resume = "Resume"
+    cancel = "Cancel"
+    close = "Close"
+    save = "Save"
+    delete = "Delete"
+    confirm = "Confirm"
+    dismiss = "Dismiss"
+    change = "Change"
+}
+
+private val FR = Strings().apply {
+    navHome = "Accueil"
+    navLive = "TV en direct"
+    navGuide = "Guide"
+    navMovies = "Films"
+    navSeries = "Séries"
+    navFavorites = "Favoris"
+    navSearch = "Recherche"
+    navCategories = "Catégories"
+    navMultiview = "Multi-vue"
+    navRecordings = "Enregistrements"
+    navSettings = "Paramètres"
+    homeWelcome = "Bienvenue dans Ultra TV"
+    homeSubtitle = "Build native · prêt pour la télécommande"
+    homeContinueWatching = "Continuer à regarder"
+    homeRecentlyWatched = "Récemment regardé"
+    homeFeaturedChannels = "Chaînes en vedette"
+    homeFeaturedMovies = "Films"
+    homeFeaturedSeries = "Séries"
+    onboardingMacLabel = "MAC de l'appareil :"
+    onboardingOpenSettings = "Ouvrir les paramètres"
+    onboardingFirstTime = "Première configuration"
+    onboardingTwoPaths = "Deux façons d'ajouter un fournisseur :"
+    onboardingPathManual = "1. Ouvre Paramètres → +Xtream / +M3U / +M3U fichier / +Stalker et remplis le formulaire."
+    onboardingPathCloud = "2. Héberge le worker Cloudflare depuis cloudflare-config/, colle ce MAC dans son tableau de bord, puis Paramètres → Définir l'URL du worker → Sync depuis le cloud."
+    parentalPinEnabled = "PIN parental : activé (4 chiffres)"
+    parentalPinNotSet = "PIN parental : non défini"
+    parentalSetPin = "Définir le PIN"
+    parentalChangePin = "Modifier le PIN"
+    parentalClearPin = "Effacer"
+    parentalManageLocked = "Gérer les chaînes verrouillées…"
+    parentalSetTitle = "Définir le PIN parental"
+    parentalPinHint = "PIN (4 chiffres)"
+    parentalConfirmHint = "Confirmer le PIN"
+    parentalLockedTitle = "🔒 Contenu verrouillé"
+    parentalEnterPin = "Saisis ton PIN parental pour continuer."
+    parentalWrongPin = "PIN incorrect."
+    parentalUnlock = "Déverrouiller"
+    categoriesManage = "Gérer les catégories"
+    categoriesFilterHint = "Filtrer les noms de catégorie…"
+    categoriesHideAll = "Masquer tout le filtre"
+    categoriesShowAll = "Afficher tout le filtre"
+    categoriesHideAdult = "🔞 Masquer adulte"
+    categoriesResetAll = "Tout réinitialiser"
+    categoriesEmpty = "Aucune catégorie — ajoute un fournisseur et re-sync."
+    categoriesShow = "Afficher"
+    categoriesHide = "Masquer"
+    categoriesCountTemplate = "%1\$d au total · %2\$d affichées · %3\$d masquées"
+    wizardWelcomeTitle = "👋 Bienvenue dans Ultra TV"
+    wizardAddProviderTitle = "📡 Ajouter un fournisseur"
+    wizardDoneTitle = "🎉 Tout est prêt"
+    wizardStepTemplate = "Étape %1\$d / %2\$d"
+    wizardIntro1 = "Ultra TV est un client IPTV natif Android-TV. Il gère Xtream Codes, M3U / M3U8, fichiers M3U locaux et Stalker Portal."
+    wizardIntro2 = "Il utilise Compose-TV pour l'UI, Media3 / ExoPlayer pour la lecture et Room pour le catalogue. La navigation à la télécommande fonctionne nativement."
+    wizardTwoPaths = "Deux options :"
+    wizardPathManual = "• Paramètres → +Xtream / +M3U URL / +M3U fichier / +Stalker. Remplis le formulaire."
+    wizardPathCloud = "• Ou ouvre ton tableau de bord Cloudflare Worker, colle la MAC ci-dessous, ajoute tes fournisseurs, puis Paramètres → Sync depuis le cloud."
+    wizardTipsHead = "Astuces à retrouver à tout moment :"
+    wizardTipDefault = "• ★ Le choix du fournisseur par défaut est dans Paramètres."
+    wizardTipSleep = "• 💤 Veille programmée + 📊 Stats du flux dans l'overlay du lecteur."
+    wizardTipLock = "• 🔒 Verrouille des chaînes via Paramètres → Parental."
+    wizardTipBackup = "• 💾 Sauvegarde/restauration exporte fournisseurs + favoris + historique en JSON."
+    wizardTipGuide = "• 🗓 Guide → Rafraîchir xmltv télécharge une grille EPG de 12 h."
+    wizardBack = "Retour"
+    wizardNext = "Suivant"
+    wizardAddProviderCta = "Ajouter un fournisseur →"
+    wizardSkip = "Passer pour l'instant"
+    lockChannelsTitle = "Verrouiller des chaînes"
+    lockChannelsSubtitle = "Les chaînes verrouillées exigent le PIN parental. %1\$d au total · %2\$d verrouillées"
+    lockChannelsFilterHint = "Filtrer les chaînes…"
+    lockChannelsLock = "Verrouiller"
+    lockChannelsUnlock = "Déverrouiller"
+    guideClickHint = "Clique une chaîne pour charger les prochains programmes."
+    guideLoadingEpg = "Chargement de l'EPG…"
+    guideProgrammesTemplate = "%1\$d programmes chargés · %2\$d chaînes"
+    guideLoading = "Chargement…"
+    guideRefreshXmltv = "Rafraîchir xmltv"
+    guideNoChannels = "Aucune chaîne — ajoute un fournisseur dans Paramètres."
+    addProviderAdd = "Ajouter"
+    addProviderXtreamTitle = "Ajouter un fournisseur Xtream Codes"
+    addProviderM3uTitle = "Ajouter une playlist M3U"
+    addProviderStalkerTitle = "Ajouter un portail Stalker"
+    fieldNameOptional = "Nom (optionnel)"
+    fieldServerUrl = "URL du serveur (http://hôte:port)"
+    fieldUsername = "Identifiant"
+    fieldPassword = "Mot de passe"
+    fieldPlaylistUrl = "URL de la playlist"
+    fieldPortalUrl = "URL du portail"
+    fieldDeviceMac = "MAC de l'appareil (XX:XX:XX:XX:XX:XX)"
+    settingsAutoImportTitle = "📡 Import auto via la MAC de l'appareil"
+    settingsYourMac = "Ta MAC :"
+    settingsMacHint = "Ouvre ton tableau de bord Worker, colle cette MAC, ajoute tes fournisseurs, puis appuie sur Sync."
+    settingsConfigPasswordLabel = "Mot de passe de la config : "
+    settingsConfigPasswordNone = "(aucun — n'importe qui avec la MAC peut lire)"
+    settingsSet = "Définir"
+    settingsSyncing = "En cours…"
+    settingsSyncFromCloud = "Sync depuis le cloud"
+    settingsAddProviderTitle = "➕ Ajouter un fournisseur"
+    settingsAddProviderHint = "Appuie sur un bouton pour ouvrir le formulaire. Le clavier n'apparaît que dans la fenêtre — il ne te gênera pas en faisant défiler les paramètres."
+    settingsAddXtream = "+ Xtream Codes"
+    settingsAddM3uUrl = "+ URL M3U"
+    settingsAddM3uFile = "+ Fichier M3U…"
+    settingsAddStalker = "+ Portail Stalker"
+    settingsConfiguredHeader = "Fournisseurs configurés"
+    settingsNoneYet = "(aucun pour l'instant)"
+    settingsDefaultBadge = "★ Défaut"
+    settingsSetDefault = "Définir par défaut"
+    settingsResync = "Re-sync"
+    settingsBackupTitle = "💾 Sauvegarde et restauration"
+    settingsBackupHint = "Exporte fournisseurs, favoris et historique dans un fichier JSON. Les catalogues (chaînes / films / séries) sont re-téléchargés à la sync, pas inclus."
+    settingsBackupExport = "Exporter la sauvegarde"
+    settingsBackupImport = "Importer une sauvegarde…"
+    settingsParentalHint = "Quand un PIN est défini, les catégories adultes (xxx / adult / 18+ / etc.) se verrouillent à chaque sync."
+    settingsConfigPwdDialogTitle = "Mot de passe de la config"
+    settingsConfigPwdDialogHint = "Chaque config par MAC peut être protégée par un mot de passe. Saisis la même valeur que celle que l'admin a définie pour ta MAC. Laisse vide pour n'envoyer aucun mot de passe (n'a d'effet que pour les MAC non protégées)."
+    settingsConfigPwdFieldLabel = "Mot de passe (visible — adapté à la télécommande)"
+    settingsConfigPwdFieldPlaceholder = "Laisse vide pour effacer"
+    settingsWorkerDialogTitle = "Définir l'URL du Worker Cloudflare"
+    settingsWorkerDialogHint = "Chaque utilisateur déploie son propre Worker (cloudflare-config/) et colle son URL ici. Aucune URL par défaut n'est livrée dans l'app pour éviter de divulguer la tienne via le code source."
+    settingsWorkerFieldLabel = "URL de base du Worker (ex. https://ta-config.ton-compte.workers.dev)"
+    toastBackupSaved = "Sauvegarde enregistrée"
+    toastSaveFailed = "Échec de l'enregistrement : "
+    toastEmptyFile = "Fichier vide ou illisible"
+    toastConfigPasswordSaved = "Mot de passe enregistré"
+    prefSidebar = "Barre latérale"
+    prefTopBar = "Barre du haut"
+    prefThemeDark = "Sombre"
+    prefThemeAmoled = "AMOLED"
+    prefThemeBlue = "Bleu"
+    prefDefaultPlayer = "Lecteur par défaut"
+    prefPlayerInternal = "Interne (Media3)"
+    prefPlayerExternal = "Externe (VLC / MX)"
+    prefAutoSyncHint = "Recharge les catalogues à chaque lancement de l'app."
+    prefShowChannelNumbers = "Afficher les numéros de chaîne"
+    prefShowChannelNumbersHint = "Affiche le numéro de position à côté de chaque chaîne en Live TV."
+    prefHideAdult = "Masquer les catégories adultes"
+    prefHideAdultHint = "Retire complètement les catégories adultes des listes (au-delà du verrou PIN)."
+    prefResume = "Reprise de lecture"
+    prefResumeHint = "Rouvre films/épisodes là où tu t'es arrêté."
+    prefAutoPlayNext = "Auto-lecture épisode suivant"
+    prefAutoPlayNextHint = "Lance S0xE0y+1 automatiquement à la fin d'un épisode."
+    prefLaunchAtBoot = "Lancer au démarrage de la TV"
+    prefLaunchAtBootHint = "Ouvre Ultra TV automatiquement quand la box démarre."
+    prefAutoPlayLast = "Reprendre le dernier au démarrage"
+    prefAutoPlayLastHint = "Rejoue la dernière chaîne / film / épisode au lancement."
+    prefIntervalLaunch = "À chaque lancement"
+    prefInterval6 = "Toutes les 6 h"
+    prefInterval12 = "Toutes les 12 h"
+    prefInterval24 = "Toutes les 24 h"
+    favoritesEmpty = "Aucun favori — ouvre un film ou une série et appuie sur ☆."
+    favoritesMoviesSection = "Films — %1\$d"
+    favoritesSeriesSection = "Séries — %1\$d"
+    detailLoading = "Chargement…"
+    seriesNoEpisodes = "Aucun épisode disponible."
+    multiViewTitle = "Multi-vue"
+    multiViewHint = "Sélectionne une case pour lui attribuer une chaîne. ENTRÉE passe à la suivante."
+    multiViewPickTemplate = "Choisis une chaîne pour la case %1\$d :"
+    recordingsPlay = "Lire"
+    recordingsOpenWith = "Ouvrir avec…"
+    playerOff = "Désactivé"
+    playerAudioTemplate = "Audio (%1\$d)"
+    playerSubtitlesTemplate = "Sous-titres (%1\$d)"
+    liveAllChannels = "Toutes les chaînes"
+    liveZappingEyebrow = "ZAPPING"
+    liveOnAirPill = "EN COURS"
+    liveThen = "puis"
+    liveDayScheduleEyebrow = "PROGRAMME DE LA JOURNÉE"
+    liveNoEpgForChannel = "Pas d'EPG disponible pour cette chaîne."
+    updateAvailableEyebrow = "MISE À JOUR DISPONIBLE"
+    updateLater = "Plus tard"
+    updateInstall = "Mettre à jour"
+    updateDownloading = "Téléchargement…"
+    settingsTelemetryTitle = "Diagnostics distants"
+    settingsTelemetryHint = "Envoie crashes + events au worker pour debug. Désactive pour stopper toute télémétrie sortante."
+    settingsCheckForUpdates = "Vérifier les mises à jour"
+    settingsCheckingForUpdates = "Vérification…"
+    settingsUpToDateTemplate = "Vous êtes à jour (v%s)"
+    settingsUpdateAvailableTemplate = "Mise à jour %s disponible"
+    backupEncryptHint = "Le fichier exporté contient tes credentials Xtream/Stalker en clair. Saisis un mot de passe pour chiffrer le backup en AES-GCM (recommandé)."
+    backupEncryptFieldLabel = "Mot de passe de chiffrement (optionnel)"
+    backupEncryptFieldPlaceholder = "Laisser vide pour un export en clair"
+    liveChannelsCountTemplate = "%1\$d chaînes"
+    liveNoChannelsInCategory = "Aucune chaîne dans cette catégorie."
+    railOther = "Autre"
+    open = "Ouvrir"
+    sleepLabel = "Veille"
+    sleepMin15 = "15 min"
+    sleepMin30 = "30 min"
+    sleep1h = "1 heure"
+    sleep2h = "2 heures"
+    sleepCancel = "Annuler le minuteur"
+    sleepReached = "Minuteur atteint — lecture en pause"
+    recordingQueuedTemplate = "Enregistrement en file (max %1\$d min)"
+    statResolution = "Résolution"
+    statVideoCodec = "Codec vidéo"
+    statFrameRate = "Images/s"
+    statVideoBitrate = "Bitrate vidéo"
+    statAudioCodec = "Codec audio"
+    statAudioChannels = "Canaux audio"
+    statBuffered = "Tampon"
+    statDroppedFrames = "Images perdues"
+    toastBackupReady = "Sauvegarde prête — choisis un fichier pour l'enregistrer."
+    toastRestoredTemplate = "Restauré : %1\$d fournisseur(s), %2\$d favoris, %3\$d entrées d'historique"
+    toastRestoreFailed = "Échec de la restauration : "
+    toastRecordingQueued = "Enregistrement en file — voir l'écran Enregistrements"
+    settingsTitle = "Paramètres"
+    settingsDisplay = "Affichage et lecture"
+    settingsParental = "Contrôle parental"
+    settingsBackup = "Sauvegarde et restauration"
+    settingsLanguage = "Langue"
+    settingsTheme = "Thème"
+    settingsMenuPosition = "Position du menu"
+    settingsAutoSync = "Sync auto au lancement"
+    settingsRefreshPlaylists = "Rafraîchir les playlists"
+    movieDetailPlot = "Synopsis"
+    seriesDetailEpisodes = "Épisodes"
+    moviesTitle = "Films"
+    seriesTitle = "Séries"
+    noMovies = "Aucun film — ajoute un fournisseur dans les paramètres puis re-sync."
+    noSeries = "Aucune série — ajoute un fournisseur dans les paramètres puis re-sync."
+    playerSleep = "Veille"
+    playerStats = "Stats"
+    playerTracks = "Pistes"
+    playerDisplay = "Affichage"
+    playerExternal = "Lecteur externe"
+    playerCast = "Cast"
+    playerRecord = "Enregistrer"
+    playerAspect = "Format"
+    playerSpeed = "Vitesse"
+    playerZapHint = "▲ ▼ pour zapper"
+    searchPlaceholder = "Saisis pour chercher chaînes, films, séries…"
+    searchRecent = "Récents :"
+    searchClear = "Effacer"
+    searchNoMatches = "Aucun résultat."
+    recordingsTitle = "Enregistrements"
+    recordingsEmpty = "Aucun enregistrement pour l'instant. Ouvre un film ou un épisode et appuie sur ⏺ Enregistrer."
+    recordingStatusQueued = "En file"
+    recordingStatusRunning = "Téléchargement…"
+    recordingStatusDone = "Enregistré"
+    recordingStatusFailed = "Échec"
+    recordingStatusCancelled = "Annulé"
+    live = "TV en direct"
+    movies = "Films"
+    series = "Séries"
+    categories = "Catégories"
+    tvGuide = "Guide TV"
+    favorites = "Favoris"
+    play = "Lecture"
+    resume = "Reprendre"
+    cancel = "Annuler"
+    close = "Fermer"
+    save = "Enregistrer"
+    delete = "Supprimer"
+    confirm = "Confirmer"
+    dismiss = "Retirer"
+    change = "Modifier"
+}
+
+private val ES = Strings().apply {
+    navHome = "Inicio"
+    navLive = "TV en vivo"
+    navGuide = "Guía"
+    navMovies = "Películas"
+    navSeries = "Series"
+    navFavorites = "Favoritos"
+    navSearch = "Buscar"
+    navCategories = "Categorías"
+    navMultiview = "Multi-vista"
+    navRecordings = "Grabaciones"
+    navSettings = "Ajustes"
+    homeWelcome = "Bienvenido a Ultra TV"
+    homeSubtitle = "Build nativo · listo para mando a distancia"
+    homeContinueWatching = "Continuar viendo"
+    homeRecentlyWatched = "Vistos recientemente"
+    homeFeaturedChannels = "Canales destacados"
+    homeFeaturedMovies = "Películas"
+    homeFeaturedSeries = "Series"
+    onboardingMacLabel = "MAC del dispositivo:"
+    onboardingOpenSettings = "Abrir ajustes"
+    onboardingFirstTime = "Configuración inicial"
+    onboardingTwoPaths = "Dos formas de añadir un proveedor:"
+    onboardingPathManual = "1. Abre Ajustes → +Xtream / +M3U / +M3U archivo / +Stalker y rellena el formulario."
+    onboardingPathCloud = "2. Aloja el worker de Cloudflare desde cloudflare-config/, pega esta MAC en su panel y luego Ajustes → Definir URL del worker → Sync desde la nube."
+    parentalPinEnabled = "PIN parental: activado (4 dígitos)"
+    parentalPinNotSet = "PIN parental: no configurado"
+    parentalSetPin = "Configurar PIN"
+    parentalChangePin = "Cambiar PIN"
+    parentalClearPin = "Borrar"
+    parentalManageLocked = "Gestionar canales bloqueados…"
+    parentalSetTitle = "Configurar PIN parental"
+    parentalPinHint = "PIN (4 dígitos)"
+    parentalConfirmHint = "Confirmar PIN"
+    parentalLockedTitle = "🔒 Contenido bloqueado"
+    parentalEnterPin = "Introduce tu PIN parental para continuar."
+    parentalWrongPin = "PIN incorrecto."
+    parentalUnlock = "Desbloquear"
+    categoriesManage = "Gestionar categorías"
+    categoriesFilterHint = "Filtrar nombres de categoría…"
+    categoriesHideAll = "Ocultar todo el filtro"
+    categoriesShowAll = "Mostrar todo el filtro"
+    categoriesHideAdult = "🔞 Ocultar adulto"
+    categoriesResetAll = "Restablecer todo"
+    categoriesEmpty = "Sin categorías — añade un proveedor y vuelve a sincronizar."
+    categoriesShow = "Mostrar"
+    categoriesHide = "Ocultar"
+    categoriesCountTemplate = "%1\$d en total · %2\$d visibles · %3\$d ocultas"
+    wizardWelcomeTitle = "👋 Bienvenido a Ultra TV"
+    wizardAddProviderTitle = "📡 Añadir un proveedor"
+    wizardDoneTitle = "🎉 Todo listo"
+    wizardStepTemplate = "Paso %1\$d / %2\$d"
+    wizardIntro1 = "Ultra TV es un cliente IPTV nativo para Android-TV. Soporta Xtream Codes, M3U / M3U8, archivos M3U locales y Stalker Portal."
+    wizardIntro2 = "Usa Compose-TV para la UI, Media3 / ExoPlayer para reproducción y Room para el catálogo. La navegación con mando funciona de fábrica."
+    wizardTwoPaths = "Dos formas:"
+    wizardPathManual = "• Ajustes → +Xtream / +M3U URL / +M3U archivo / +Stalker. Rellena el formulario."
+    wizardPathCloud = "• O abre tu panel de Cloudflare Worker, pega la MAC de abajo, añade los proveedores y luego Ajustes → Sync desde la nube."
+    wizardTipsHead = "Consejos a los que puedes volver:"
+    wizardTipDefault = "• ★ El proveedor por defecto se cambia en Ajustes."
+    wizardTipSleep = "• 💤 Temporizador + 📊 Stats del stream en el overlay del reproductor."
+    wizardTipLock = "• 🔒 Bloquea canales en Ajustes → Parental."
+    wizardTipBackup = "• 💾 Copia y restauración exporta proveedores + favoritos + historial como JSON."
+    wizardTipGuide = "• 🗓 Guía → Refrescar xmltv descarga una rejilla EPG de 12 h."
+    wizardBack = "Atrás"
+    wizardNext = "Siguiente"
+    wizardAddProviderCta = "Añadir un proveedor →"
+    wizardSkip = "Omitir por ahora"
+    lockChannelsTitle = "Bloquear canales individuales"
+    lockChannelsSubtitle = "Los canales bloqueados requieren el PIN parental. %1\$d en total · %2\$d bloqueados"
+    lockChannelsFilterHint = "Filtrar canales…"
+    lockChannelsLock = "Bloquear"
+    lockChannelsUnlock = "Desbloquear"
+    guideClickHint = "Pulsa un canal para cargar los próximos programas."
+    guideLoadingEpg = "Cargando EPG…"
+    guideProgrammesTemplate = "%1\$d programas cargados · %2\$d canales"
+    guideLoading = "Cargando…"
+    guideRefreshXmltv = "Refrescar xmltv"
+    guideNoChannels = "Sin canales — añade un proveedor en Ajustes."
+    addProviderAdd = "Añadir"
+    addProviderXtreamTitle = "Añadir proveedor Xtream Codes"
+    addProviderM3uTitle = "Añadir playlist M3U"
+    addProviderStalkerTitle = "Añadir portal Stalker"
+    fieldNameOptional = "Nombre (opcional)"
+    fieldServerUrl = "URL del servidor (http://host:puerto)"
+    fieldUsername = "Usuario"
+    fieldPassword = "Contraseña"
+    fieldPlaylistUrl = "URL de la playlist"
+    fieldPortalUrl = "URL del portal"
+    fieldDeviceMac = "MAC del dispositivo (XX:XX:XX:XX:XX:XX)"
+    settingsAutoImportTitle = "📡 Importación automática mediante MAC"
+    settingsYourMac = "Tu MAC:"
+    settingsMacHint = "Abre el panel de tu worker, pega esta MAC, añade proveedores y pulsa Sync."
+    settingsConfigPasswordLabel = "Contraseña de la config: "
+    settingsConfigPasswordNone = "(ninguna — cualquiera con la MAC puede leerla)"
+    settingsSet = "Definir"
+    settingsSyncing = "Procesando…"
+    settingsSyncFromCloud = "Sync desde la nube"
+    settingsAddProviderTitle = "➕ Añadir un proveedor"
+    settingsAddProviderHint = "Pulsa un botón para abrir el formulario. El teclado solo aparece dentro del diálogo — no molesta al desplazarte por Ajustes."
+    settingsAddXtream = "+ Xtream Codes"
+    settingsAddM3uUrl = "+ URL M3U"
+    settingsAddM3uFile = "+ Archivo M3U…"
+    settingsAddStalker = "+ Portal Stalker"
+    settingsConfiguredHeader = "Proveedores configurados"
+    settingsNoneYet = "(ninguno aún)"
+    settingsDefaultBadge = "★ Predeterminado"
+    settingsSetDefault = "Hacer predeterminado"
+    settingsResync = "Re-sync"
+    settingsBackupTitle = "💾 Copia y restauración"
+    settingsBackupHint = "Exporta proveedores, favoritos e historial a un JSON que elijas. Los catálogos (canales / películas / series) se re-descargan en sync, no se incluyen."
+    settingsBackupExport = "Exportar copia"
+    settingsBackupImport = "Importar copia…"
+    settingsParentalHint = "Cuando hay un PIN, las categorías adultas (xxx / adult / 18+ / etc.) se bloquean en cada sync."
+    settingsConfigPwdDialogTitle = "Contraseña de la config"
+    settingsConfigPwdDialogHint = "La config por MAC puede protegerse con contraseña. Usa la misma que el admin definió para tu MAC. Déjala vacía para no enviar contraseña (solo funciona con MAC sin proteger)."
+    settingsConfigPwdFieldLabel = "Contraseña (visible — apta para mando)"
+    settingsConfigPwdFieldPlaceholder = "Vacío para borrar"
+    settingsWorkerDialogTitle = "Configurar URL del Worker Cloudflare"
+    settingsWorkerDialogHint = "Cada usuario despliega su propio Worker (cloudflare-config/) y pega su URL aquí. No incluimos una por defecto para no filtrar la tuya en el código."
+    settingsWorkerFieldLabel = "URL base del Worker (p. ej. https://tu-config.tu-cuenta.workers.dev)"
+    toastBackupSaved = "Copia guardada"
+    toastSaveFailed = "Error al guardar: "
+    toastEmptyFile = "Archivo vacío o ilegible"
+    toastConfigPasswordSaved = "Contraseña guardada"
+    prefSidebar = "Barra lateral"
+    prefTopBar = "Barra superior"
+    prefThemeDark = "Oscuro"
+    prefThemeAmoled = "AMOLED"
+    prefThemeBlue = "Azul"
+    prefDefaultPlayer = "Reproductor por defecto"
+    prefPlayerInternal = "Interno (Media3)"
+    prefPlayerExternal = "Externo (VLC / MX)"
+    prefAutoSyncHint = "Re-descarga los catálogos cada vez que arranca la app."
+    prefShowChannelNumbers = "Mostrar números de canal"
+    prefShowChannelNumbersHint = "Muestra el número de posición junto a cada canal en TV en vivo."
+    prefHideAdult = "Ocultar categorías adultas"
+    prefHideAdultHint = "Quita por completo las categorías adultas de las listas (más allá del bloqueo PIN)."
+    prefResume = "Reanudar reproducción"
+    prefResumeHint = "Reabre películas/episodios donde los dejaste."
+    prefAutoPlayNext = "Reproducir siguiente episodio"
+    prefAutoPlayNextHint = "Reproduce S0xE0y+1 automáticamente al acabar un episodio."
+    prefLaunchAtBoot = "Iniciar al encender la TV"
+    prefLaunchAtBootHint = "Abre Ultra TV automáticamente cuando la box arranca."
+    prefAutoPlayLast = "Reproducir último al inicio"
+    prefAutoPlayLastHint = "Reanuda el último canal / película / episodio al iniciar."
+    prefIntervalLaunch = "Cada inicio"
+    prefInterval6 = "Cada 6 h"
+    prefInterval12 = "Cada 12 h"
+    prefInterval24 = "Cada 24 h"
+    favoritesEmpty = "Sin favoritos — abre una película o serie y pulsa ☆."
+    favoritesMoviesSection = "Películas — %1\$d"
+    favoritesSeriesSection = "Series — %1\$d"
+    detailLoading = "Cargando…"
+    seriesNoEpisodes = "No hay episodios disponibles."
+    multiViewTitle = "Multi-vista"
+    multiViewHint = "Pulsa una casilla para asignar un canal. ENTER pasa entre casillas."
+    multiViewPickTemplate = "Elige un canal para la casilla %1\$d:"
+    recordingsPlay = "Reproducir"
+    recordingsOpenWith = "Abrir con…"
+    playerOff = "Apagado"
+    playerAudioTemplate = "Audio (%1\$d)"
+    playerSubtitlesTemplate = "Subtítulos (%1\$d)"
+    liveAllChannels = "Todos los canales"
+    liveZappingEyebrow = "ZAPPING"
+    liveOnAirPill = "EN VIVO"
+    liveThen = "después"
+    liveDayScheduleEyebrow = "PROGRAMA DEL DÍA"
+    liveNoEpgForChannel = "EPG no disponible para este canal."
+    updateAvailableEyebrow = "ACTUALIZACIÓN DISPONIBLE"
+    updateLater = "Más tarde"
+    updateInstall = "Instalar"
+    updateDownloading = "Descargando…"
+    settingsTelemetryTitle = "Diagnósticos remotos"
+    settingsTelemetryHint = "Envía crashes y eventos al worker para depuración. Desactiva para detener toda telemetría."
+    settingsCheckForUpdates = "Buscar actualizaciones"
+    settingsCheckingForUpdates = "Comprobando…"
+    settingsUpToDateTemplate = "Estás al día (v%s)"
+    settingsUpdateAvailableTemplate = "Actualización %s disponible"
+    backupEncryptHint = "El archivo exportado contiene tus credenciales Xtream / Stalker en texto plano. Pon una contraseña para cifrar el backup con AES-GCM (recomendado)."
+    backupEncryptFieldLabel = "Contraseña de cifrado (opcional)"
+    backupEncryptFieldPlaceholder = "Vacío para una exportación en claro"
+    liveChannelsCountTemplate = "%1\$d canales"
+    liveNoChannelsInCategory = "Sin canales en esta categoría."
+    railOther = "Otros"
+    open = "Abrir"
+    sleepLabel = "Suspender"
+    sleepMin15 = "15 min"
+    sleepMin30 = "30 min"
+    sleep1h = "1 hora"
+    sleep2h = "2 horas"
+    sleepCancel = "Cancelar temporizador"
+    sleepReached = "Temporizador agotado — reproducción pausada"
+    recordingQueuedTemplate = "Grabación en cola (máx %1\$d min)"
+    statResolution = "Resolución"
+    statVideoCodec = "Códec vídeo"
+    statFrameRate = "Fotogramas/s"
+    statVideoBitrate = "Bitrate vídeo"
+    statAudioCodec = "Códec audio"
+    statAudioChannels = "Canales audio"
+    statBuffered = "Buffer"
+    statDroppedFrames = "Fotogramas perdidos"
+    toastBackupReady = "Copia lista — elige un archivo para guardarla."
+    toastRestoredTemplate = "Restaurado: %1\$d proveedor(es), %2\$d favoritos, %3\$d entradas de historial"
+    toastRestoreFailed = "Error al restaurar: "
+    toastRecordingQueued = "Grabación en cola — ver pantalla Grabaciones"
+    settingsTitle = "Ajustes"
+    settingsDisplay = "Pantalla y reproducción"
+    settingsParental = "Control parental"
+    settingsBackup = "Copia y restauración"
+    settingsLanguage = "Idioma"
+    settingsTheme = "Tema"
+    settingsMenuPosition = "Posición del menú"
+    settingsAutoSync = "Sync auto al inicio"
+    settingsRefreshPlaylists = "Actualizar listas"
+    movieDetailPlot = "Sinopsis"
+    seriesDetailEpisodes = "Episodios"
+    moviesTitle = "Películas"
+    seriesTitle = "Series"
+    noMovies = "Sin películas — añade un proveedor en ajustes y vuelve a sincronizar."
+    noSeries = "Sin series — añade un proveedor en ajustes y vuelve a sincronizar."
+    playerSleep = "Suspender"
+    playerStats = "Stats"
+    playerTracks = "Pistas"
+    playerDisplay = "Pantalla"
+    playerExternal = "Reproductor externo"
+    playerCast = "Cast"
+    playerRecord = "Grabar"
+    playerAspect = "Aspecto"
+    playerSpeed = "Velocidad"
+    playerZapHint = "▲ ▼ para cambiar de canal"
+    searchPlaceholder = "Escribe para buscar canales, películas, series…"
+    searchRecent = "Recientes:"
+    searchClear = "Limpiar"
+    searchNoMatches = "Sin coincidencias."
+    recordingsTitle = "Grabaciones"
+    recordingsEmpty = "Aún no hay grabaciones. Abre una película o episodio y pulsa ⏺ Grabar."
+    recordingStatusQueued = "En cola"
+    recordingStatusRunning = "Descargando…"
+    recordingStatusDone = "Guardado"
+    recordingStatusFailed = "Falló"
+    recordingStatusCancelled = "Cancelado"
+    live = "TV en vivo"
+    movies = "Películas"
+    series = "Series"
+    categories = "Categorías"
+    tvGuide = "Guía TV"
+    favorites = "Favoritos"
+    play = "Reproducir"
+    resume = "Reanudar"
+    cancel = "Cancelar"
+    close = "Cerrar"
+    save = "Guardar"
+    delete = "Eliminar"
+    confirm = "Confirmar"
+    dismiss = "Descartar"
+    change = "Cambiar"
+}
+
+private val AR = Strings().apply {
+    navHome = "الرئيسية"
+    navLive = "البث المباشر"
+    navGuide = "الدليل"
+    navMovies = "الأفلام"
+    navSeries = "المسلسلات"
+    navFavorites = "المفضلة"
+    navSearch = "بحث"
+    navCategories = "الفئات"
+    navMultiview = "عرض متعدد"
+    navRecordings = "التسجيلات"
+    navSettings = "الإعدادات"
+    homeWelcome = "مرحبًا بكم في Ultra TV"
+    homeSubtitle = "نسخة أصلية · جاهزة لجهاز التحكم"
+    homeContinueWatching = "متابعة المشاهدة"
+    homeRecentlyWatched = "شوهد مؤخرًا"
+    homeFeaturedChannels = "قنوات مميزة"
+    homeFeaturedMovies = "الأفلام"
+    homeFeaturedSeries = "المسلسلات"
+    onboardingMacLabel = "عنوان MAC للجهاز:"
+    onboardingOpenSettings = "فتح الإعدادات"
+    onboardingFirstTime = "الإعداد الأول"
+    onboardingTwoPaths = "طريقتان لإضافة موفّر:"
+    onboardingPathManual = "1. افتح الإعدادات ← +Xtream / +M3U / +M3U ملف / +Stalker واملأ النموذج."
+    onboardingPathCloud = "2. استضف Cloudflare Worker من cloudflare-config/، ألصق عنوان MAC هذا في لوحة التحكم، ثم الإعدادات ← تعيين رابط الـ worker ← مزامنة من السحابة."
+    parentalPinEnabled = "PIN الرقابة الأبوية: مفعّل (٤ أرقام)"
+    parentalPinNotSet = "PIN الرقابة الأبوية: غير محدد"
+    parentalSetPin = "تعيين PIN"
+    parentalChangePin = "تغيير PIN"
+    parentalClearPin = "مسح"
+    parentalManageLocked = "إدارة القنوات المقفلة…"
+    parentalSetTitle = "تعيين PIN الرقابة الأبوية"
+    parentalPinHint = "PIN (٤ أرقام)"
+    parentalConfirmHint = "تأكيد PIN"
+    parentalLockedTitle = "🔒 محتوى مقفل"
+    parentalEnterPin = "أدخل PIN الرقابة الأبوية للمتابعة."
+    parentalWrongPin = "PIN غير صحيح."
+    parentalUnlock = "فتح"
+    categoriesManage = "إدارة الفئات"
+    categoriesFilterHint = "تصفية أسماء الفئات…"
+    categoriesHideAll = "إخفاء كل المصفى"
+    categoriesShowAll = "إظهار كل المصفى"
+    categoriesHideAdult = "🔞 إخفاء الكبار"
+    categoriesResetAll = "إعادة تعيين الكل"
+    categoriesEmpty = "لا توجد فئات بعد — أضف موفّرًا وزامن."
+    categoriesShow = "إظهار"
+    categoriesHide = "إخفاء"
+    categoriesCountTemplate = "%1\$d إجمالًا · %2\$d ظاهرة · %3\$d مخفية"
+    wizardWelcomeTitle = "👋 مرحبًا بك في Ultra TV"
+    wizardAddProviderTitle = "📡 إضافة موفّر"
+    wizardDoneTitle = "🎉 كل شيء جاهز"
+    wizardStepTemplate = "الخطوة %1\$d / %2\$d"
+    wizardIntro1 = "Ultra TV عميل IPTV أصلي لأندرويد TV. يدعم Xtream Codes وM3U / M3U8 وملفات M3U المحلية وStalker Portal."
+    wizardIntro2 = "يستخدم Compose-TV للواجهة وMedia3 / ExoPlayer للتشغيل وRoom للكتالوج. التنقل بالريموت يعمل تلقائيًا."
+    wizardTwoPaths = "طريقتان:"
+    wizardPathManual = "• الإعدادات ← +Xtream / +M3U URL / +M3U ملف / +Stalker. املأ النموذج."
+    wizardPathCloud = "• أو افتح لوحة Cloudflare Worker، ألصق MAC أدناه، أضف الموفّرين، ثم الإعدادات ← مزامنة من السحابة."
+    wizardTipsHead = "نصائح يمكنك العودة إليها لاحقًا:"
+    wizardTipDefault = "• ★ الموفّر الافتراضي يُحدَّد من الإعدادات."
+    wizardTipSleep = "• 💤 مؤقت النوم + 📊 إحصائيات البث ضمن واجهة المشغل."
+    wizardTipLock = "• 🔒 اقفل قنوات من الإعدادات ← الرقابة الأبوية."
+    wizardTipBackup = "• 💾 النسخ الاحتياطي يصدّر الموفّرين + المفضلة + السجل بصيغة JSON."
+    wizardTipGuide = "• 🗓 الدليل ← تحديث xmltv يجلب شبكة EPG لمدة 12 ساعة."
+    wizardBack = "رجوع"
+    wizardNext = "التالي"
+    wizardAddProviderCta = "إضافة موفّر ←"
+    wizardSkip = "تخطٍّ الآن"
+    lockChannelsTitle = "قفل القنوات الفردية"
+    lockChannelsSubtitle = "القنوات المقفلة تتطلب PIN الرقابة الأبوية. %1\$d إجمالًا · %2\$d مقفلة"
+    lockChannelsFilterHint = "تصفية القنوات…"
+    lockChannelsLock = "قفل"
+    lockChannelsUnlock = "فتح"
+    guideClickHint = "اضغط قناة لتحميل برامجها التالية."
+    guideLoadingEpg = "جاري تحميل EPG…"
+    guideProgrammesTemplate = "%1\$d برنامج محمَّل · %2\$d قناة"
+    guideLoading = "جاري التحميل…"
+    guideRefreshXmltv = "تحديث xmltv"
+    guideNoChannels = "لا توجد قنوات — أضف موفّرًا من الإعدادات."
+    addProviderAdd = "إضافة"
+    addProviderXtreamTitle = "إضافة موفّر Xtream Codes"
+    addProviderM3uTitle = "إضافة قائمة M3U"
+    addProviderStalkerTitle = "إضافة بوابة Stalker"
+    fieldNameOptional = "الاسم (اختياري)"
+    fieldServerUrl = "رابط الخادم (http://host:port)"
+    fieldUsername = "اسم المستخدم"
+    fieldPassword = "كلمة المرور"
+    fieldPlaylistUrl = "رابط القائمة"
+    fieldPortalUrl = "رابط البوابة"
+    fieldDeviceMac = "MAC الجهاز (XX:XX:XX:XX:XX:XX)"
+    settingsAutoImportTitle = "📡 استيراد تلقائي بواسطة MAC"
+    settingsYourMac = "MAC الخاص بك:"
+    settingsMacHint = "افتح لوحة Worker، ألصق هذا MAC، أضف الموفّرين ثم اضغط مزامنة."
+    settingsConfigPasswordLabel = "كلمة مرور الإعداد: "
+    settingsConfigPasswordNone = "(لا توجد — أي شخص يملك MAC يستطيع قراءتها)"
+    settingsSet = "تعيين"
+    settingsSyncing = "جارٍ العمل…"
+    settingsSyncFromCloud = "مزامنة من السحابة"
+    settingsAddProviderTitle = "➕ إضافة موفّر"
+    settingsAddProviderHint = "اضغط زرًا لفتح النموذج. لوحة المفاتيح تظهر فقط داخل النافذة — لن تعترضك أثناء التمرير."
+    settingsAddXtream = "+ Xtream Codes"
+    settingsAddM3uUrl = "+ رابط M3U"
+    settingsAddM3uFile = "+ ملف M3U…"
+    settingsAddStalker = "+ بوابة Stalker"
+    settingsConfiguredHeader = "الموفّرون المهيّأون"
+    settingsNoneYet = "(لا يوجد بعد)"
+    settingsDefaultBadge = "★ افتراضي"
+    settingsSetDefault = "تعيين كافتراضي"
+    settingsResync = "إعادة مزامنة"
+    settingsBackupTitle = "💾 النسخ الاحتياطي والاستعادة"
+    settingsBackupHint = "يصدّر الموفّرين والمفضلة والسجل إلى ملف JSON تختاره. الكتالوجات (قنوات/أفلام/مسلسلات) تُحمَّل عبر المزامنة، وليست مضمّنة."
+    settingsBackupExport = "تصدير النسخة"
+    settingsBackupImport = "استيراد نسخة…"
+    settingsParentalHint = "عند تعيين PIN تُقفل الفئات الكبيرة (xxx / adult / 18+ / إلخ) تلقائيًا عند كل مزامنة."
+    settingsConfigPwdDialogTitle = "كلمة مرور الإعداد"
+    settingsConfigPwdDialogHint = "يمكن حماية إعداد كل MAC بكلمة مرور. أدخل القيمة التي حدّدها المسؤول. اتركها فارغة لعدم إرسال كلمة مرور (تعمل فقط مع MAC غير محمي)."
+    settingsConfigPwdFieldLabel = "كلمة المرور (مرئية — مناسبة للريموت)"
+    settingsConfigPwdFieldPlaceholder = "اتركها فارغة لمسحها"
+    settingsWorkerDialogTitle = "ضبط رابط Cloudflare Worker"
+    settingsWorkerDialogHint = "كل مستخدم ينشر Worker الخاص به (cloudflare-config/) ويلصق رابطه هنا. لا نضمّن أي رابط افتراضي تجنبًا لتسريب رابطك عبر الشيفرة."
+    settingsWorkerFieldLabel = "رابط Worker الأساسي (مثال https://your-config.your-acct.workers.dev)"
+    toastBackupSaved = "تم حفظ النسخة"
+    toastSaveFailed = "فشل الحفظ: "
+    toastEmptyFile = "ملف فارغ أو غير مقروء"
+    toastConfigPasswordSaved = "تم حفظ كلمة المرور"
+    prefSidebar = "الشريط الجانبي"
+    prefTopBar = "الشريط العلوي"
+    prefThemeDark = "داكن"
+    prefThemeAmoled = "AMOLED"
+    prefThemeBlue = "أزرق"
+    prefDefaultPlayer = "المشغّل الافتراضي"
+    prefPlayerInternal = "داخلي (Media3)"
+    prefPlayerExternal = "خارجي (VLC / MX)"
+    prefAutoSyncHint = "إعادة تحميل كتالوجات الموفّر مع كل تشغيل."
+    prefShowChannelNumbers = "إظهار أرقام القنوات"
+    prefShowChannelNumbersHint = "إظهار رقم القناة بجانب كل قناة في البث المباشر."
+    prefHideAdult = "إخفاء فئات الكبار"
+    prefHideAdultHint = "إزالة فئات الكبار من القوائم تمامًا (أوسع من قفل PIN)."
+    prefResume = "متابعة التشغيل"
+    prefResumeHint = "إعادة فتح الأفلام/الحلقات من حيث توقفت."
+    prefAutoPlayNext = "تشغيل تلقائي للحلقة التالية"
+    prefAutoPlayNextHint = "تشغيل S0xE0y+1 تلقائيًا عند انتهاء الحلقة."
+    prefLaunchAtBoot = "التشغيل عند إقلاع التلفاز"
+    prefLaunchAtBootHint = "فتح Ultra TV تلقائيًا عند انتهاء إقلاع الجهاز."
+    prefAutoPlayLast = "تشغيل آخر مشاهدة عند البدء"
+    prefAutoPlayLastHint = "استئناف آخر قناة / فيلم / حلقة عند تشغيل التطبيق."
+    prefIntervalLaunch = "كل تشغيل"
+    prefInterval6 = "كل 6 ساعات"
+    prefInterval12 = "كل 12 ساعة"
+    prefInterval24 = "كل 24 ساعة"
+    favoritesEmpty = "لا توجد مفضلة بعد — افتح فيلمًا أو مسلسلًا واضغط ☆."
+    favoritesMoviesSection = "الأفلام — %1\$d"
+    favoritesSeriesSection = "المسلسلات — %1\$d"
+    detailLoading = "جاري التحميل…"
+    seriesNoEpisodes = "لا توجد حلقات متاحة."
+    multiViewTitle = "عرض متعدد"
+    multiViewHint = "اضغط مربعًا لإسناد قناة. ENTER يتنقّل بين المربعات."
+    multiViewPickTemplate = "اختر قناة للمربع %1\$d:"
+    recordingsPlay = "تشغيل"
+    recordingsOpenWith = "فتح باستخدام…"
+    playerOff = "إيقاف"
+    playerAudioTemplate = "صوت (%1\$d)"
+    playerSubtitlesTemplate = "ترجمات (%1\$d)"
+    liveAllChannels = "كل القنوات"
+    liveZappingEyebrow = "تنقّل"
+    liveOnAirPill = "مباشر"
+    liveThen = "ثم"
+    liveDayScheduleEyebrow = "برنامج اليوم"
+    liveNoEpgForChannel = "لا يوجد دليل برامج لهذه القناة."
+    updateAvailableEyebrow = "تحديث متاح"
+    updateLater = "لاحقا"
+    updateInstall = "تثبيت"
+    updateDownloading = "جار التنزيل…"
+    settingsTelemetryTitle = "التشخيص عن بعد"
+    settingsTelemetryHint = "إرسال سجلات الأعطال والأحداث إلى الخادم للتشخيص. إيقاف = لا قياس عن بعد."
+    settingsCheckForUpdates = "البحث عن تحديثات"
+    settingsCheckingForUpdates = "جار الفحص…"
+    settingsUpToDateTemplate = "أنت على أحدث إصدار (v%s)"
+    settingsUpdateAvailableTemplate = "التحديث %s متاح"
+    backupEncryptHint = "الملف المُصدَّر يحتوي على بيانات اعتماد Xtream / Stalker بدون تشفير. أدخل كلمة مرور لتشفير النسخة الاحتياطية بـ AES-GCM (موصى به)."
+    backupEncryptFieldLabel = "كلمة مرور التشفير (اختياري)"
+    backupEncryptFieldPlaceholder = "اتركها فارغة لتصدير بدون تشفير"
+    liveChannelsCountTemplate = "%1\$d قناة"
+    liveNoChannelsInCategory = "لا توجد قنوات في هذه الفئة."
+    railOther = "أخرى"
+    open = "فتح"
+    sleepLabel = "النوم"
+    sleepMin15 = "15 دقيقة"
+    sleepMin30 = "30 دقيقة"
+    sleep1h = "ساعة"
+    sleep2h = "ساعتان"
+    sleepCancel = "إلغاء المؤقت"
+    sleepReached = "انتهى مؤقت النوم — أُوقف التشغيل"
+    recordingQueuedTemplate = "التسجيل في الانتظار (بحد أقصى %1\$d د)"
+    statResolution = "الدقة"
+    statVideoCodec = "كودك الفيديو"
+    statFrameRate = "معدل الإطارات"
+    statVideoBitrate = "بِت فيديو"
+    statAudioCodec = "كودك الصوت"
+    statAudioChannels = "قنوات الصوت"
+    statBuffered = "المخزن المؤقت"
+    statDroppedFrames = "الإطارات المفقودة"
+    toastBackupReady = "النسخة جاهزة — اختر ملفًا لحفظها."
+    toastRestoredTemplate = "تمت الاستعادة: %1\$d موفّر، %2\$d مفضّل، %3\$d إدخالًا في السجل"
+    toastRestoreFailed = "فشلت الاستعادة: "
+    toastRecordingQueued = "التسجيل في الانتظار — راجع شاشة التسجيلات"
+    settingsTitle = "الإعدادات"
+    settingsDisplay = "العرض والتشغيل"
+    settingsParental = "الرقابة الأبوية"
+    settingsBackup = "النسخ الاحتياطي والاستعادة"
+    settingsLanguage = "اللغة"
+    settingsTheme = "السمة"
+    settingsMenuPosition = "موضع القائمة"
+    settingsAutoSync = "المزامنة التلقائية عند البدء"
+    settingsRefreshPlaylists = "تحديث القوائم"
+    movieDetailPlot = "القصة"
+    seriesDetailEpisodes = "الحلقات"
+    moviesTitle = "الأفلام"
+    seriesTitle = "المسلسلات"
+    noMovies = "لا توجد أفلام — أضف موفّرًا من الإعدادات ثم زامن."
+    noSeries = "لا توجد مسلسلات — أضف موفّرًا من الإعدادات ثم زامن."
+    playerSleep = "مؤقت النوم"
+    playerStats = "إحصائيات"
+    playerTracks = "المسارات"
+    playerDisplay = "العرض"
+    playerExternal = "مشغّل خارجي"
+    playerCast = "بث"
+    playerRecord = "تسجيل"
+    playerAspect = "نسبة العرض"
+    playerSpeed = "السرعة"
+    playerZapHint = "▲ ▼ لتغيير القناة"
+    searchPlaceholder = "اكتب للبحث عن قنوات، أفلام، مسلسلات…"
+    searchRecent = "الأخيرة:"
+    searchClear = "مسح"
+    searchNoMatches = "لا توجد نتائج."
+    recordingsTitle = "التسجيلات"
+    recordingsEmpty = "لا توجد تسجيلات بعد. افتح فيلمًا أو حلقة واضغط ⏺ تسجيل."
+    recordingStatusQueued = "في الانتظار"
+    recordingStatusRunning = "جاري التحميل…"
+    recordingStatusDone = "محفوظ"
+    recordingStatusFailed = "فشل"
+    recordingStatusCancelled = "أُلغي"
+    live = "البث المباشر"
+    movies = "الأفلام"
+    series = "المسلسلات"
+    categories = "الفئات"
+    tvGuide = "دليل التلفاز"
+    favorites = "المفضلة"
+    play = "تشغيل"
+    resume = "استئناف"
+    cancel = "إلغاء"
+    close = "إغلاق"
+    save = "حفظ"
+    delete = "حذف"
+    confirm = "تأكيد"
+    dismiss = "إهمال"
+    change = "تغيير"
+}
 
 @Composable
 fun stringsFor(lang: AppLang): Strings {

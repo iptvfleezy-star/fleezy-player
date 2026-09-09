@@ -37,6 +37,11 @@ jobs:
           mkdir -p "$HOME/.android"
           base64 -d ci/fleezy-debug.keystore.b64 > "$HOME/.android/debug.keystore"
 
+      - name: Read app version
+        id: version
+        working-directory: ${{ github.workspace }}
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
       - name: Compile Fleezy
         run: |
           chmod +x gradlew
@@ -48,13 +53,13 @@ jobs:
       - name: Stage APK
         run: |
           mkdir -p ../artifacts
-          cp app/build/outputs/apk/debug/app-debug.apk ../artifacts/FleezyPlayer-0.1.0-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../artifacts/FleezyPlayer-${{ steps.version.outputs.version }}-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FleezyPlayer-0.1.0-debug
-          path: artifacts/FleezyPlayer-0.1.0-debug.apk
+          name: FleezyPlayer-${{ steps.version.outputs.version }}-debug
+          path: artifacts/FleezyPlayer-${{ steps.version.outputs.version }}-debug.apk
           if-no-files-found: error
 
       - name: Unit tests

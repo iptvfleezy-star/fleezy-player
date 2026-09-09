@@ -602,27 +602,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                 Button(onClick = { vm.recordLive(120, S.recordingQueuedTemplate) }) { Text("⏺ ${S.playerRecord} (2h)") }
             }
             Button(onClick = { displayMenu = !displayMenu }) { Text("📐 ${S.playerDisplay}") }
-            // Cast picker — only shown if the Cast SDK initialised successfully
-            // (Play Services present). We use the framework's MediaRouteButton
-            // wrapped in an AndroidView so the system Cast UI takes over.
-            val castInited = remember {
-                runCatching { com.google.android.gms.cast.framework.CastContext.getSharedInstance(context) }.isSuccess
-            }
-            if (castInited) {
-                // MediaRouteButton wired by CastButtonFactory — opens the
-                // framework's chooser dialog when the user clicks it.
-                AndroidView(
-                    factory = { ctx ->
-                        androidx.mediarouter.app.MediaRouteButton(ctx).also { btn ->
-                            runCatching {
-                                com.google.android.gms.cast.framework.CastButtonFactory
-                                    .setUpMediaRouteButton(ctx.applicationContext, btn)
-                            }
-                        }
-                    },
-                    modifier = Modifier.padding(start = 4.dp),
-                )
-            }
             Button(onClick = { statsOpen = !statsOpen }) {
                 Text("📊 " + S.playerStats)
             }

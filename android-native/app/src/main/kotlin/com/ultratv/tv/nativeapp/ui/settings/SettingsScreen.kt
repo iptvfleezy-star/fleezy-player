@@ -177,8 +177,8 @@ fun SettingsScreen(
         )
         Spacer(Modifier.height(8.dp))
 
-        // Manual update check — useful when the launch-time auto-check
-        // missed (no network at start, dialog dismissed too early, etc.).
+        // Upstream update UI disabled for Fleezy. A Fleezy-hosted updater will replace it later.
+        if (false) {
         val updateInfo by com.ultratv.tv.nativeapp.update.UpdateChecker.state.collectAsState()
         var checking by remember { mutableStateOf(false) }
         var checkMsg by remember { mutableStateOf<String?>(null) }
@@ -209,8 +209,10 @@ fun SettingsScreen(
             }
         }
         Spacer(Modifier.height(16.dp))
+        }
 
-        // ---- 1. MAC + cloud sync ----
+        // ---- 1. Legacy cloud sync hidden in Fleezy ----
+        if (false) {
         SectionCard {
             Text(S.settingsAutoImportTitle, color = MaterialTheme.colorScheme.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -256,8 +258,9 @@ fun SettingsScreen(
                 enabled = !syncing && workerBase.isNotBlank(),
             ) { Text(if (syncing) S.settingsSyncing else S.settingsSyncFromCloud, fontSize = 15.sp) }
         }
+        }
 
-        // ---- 2. Add a provider manually ----
+        // ---- 2. Fleezy account ----
         SectionCard {
             Text(S.settingsAddProviderTitle, color = MaterialTheme.colorScheme.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
@@ -265,21 +268,7 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { openDialog = OpenDialog.XTREAM }) { Text(S.settingsAddXtream) }
-                Button(onClick = { openDialog = OpenDialog.M3U_URL }) { Text(S.settingsAddM3uUrl) }
-                Button(
-                    onClick = {
-                        pickFile.launch(arrayOf(
-                            "audio/x-mpegurl",
-                            "application/vnd.apple.mpegurl",
-                            "application/x-mpegurl",
-                            "text/plain",
-                            "application/octet-stream",
-                            "*/*",
-                        ))
-                    },
-                ) { Text(S.settingsAddM3uFile) }
-                Button(onClick = { openDialog = OpenDialog.STALKER }) { Text(S.settingsAddStalker) }
+                Button(onClick = { openDialog = OpenDialog.XTREAM }) { Text("Sign in to Fleezy") }
             }
             message?.let { Text(it, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp) }
         }
@@ -311,7 +300,6 @@ fun SettingsScreen(
                                 }
                                 Text("${p.name}  ·  ${p.kind}", fontSize = 15.sp, color = MaterialTheme.colorScheme.onBackground)
                             }
-                            Text(p.baseUrl, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         if (!p.active) {
                             Button(onClick = { vm.setDefault(p.id) }, enabled = !syncing) { Text(S.settingsSetDefault) }

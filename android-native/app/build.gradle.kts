@@ -87,7 +87,6 @@ android {
             // from the new key with an added lineage — it needs the old
             // (debug) key as the starting point.
             signingConfig = signingConfigs.getByName("debug")
-            applicationIdSuffix = ".debug"
         }
     }
 

@@ -57,7 +57,7 @@ fun PreferencesSection(vm: AppViewModel = hiltViewModel()) {
         SwitchRow(S.settingsAutoSync, S.prefAutoSyncHint, p.autoSyncOnLaunch) { vm.setAutoSync(it) }
 
         // Playback knobs added in v1.0.23
-        PrefRow(label = "Buffer size") {
+        PrefRow(label = "Playback buffer") {
             listOf(8, 15, 30, 60).forEach { sec ->
                 ChoiceChip("${sec}s", on = p.bufferSeconds == sec) { vm.setBufferSeconds(sec) }
             }
@@ -67,7 +67,7 @@ fun PreferencesSection(vm: AppViewModel = hiltViewModel()) {
             hint = "Match the TV's refresh rate to the stream (24/25/30/50/60). Reduces judder on motion.",
             value = p.autoFrameRate,
         ) { vm.setAutoFrameRate(it) }
-        PrefRow(label = "EPG time offset (min)") {
+        PrefRow(label = "Guide time offset (min)") {
             listOf(-120, -60, -30, 0, 30, 60, 120).forEach { off ->
                 ChoiceChip(
                     label = if (off > 0) "+$off" else off.toString(),
@@ -81,11 +81,13 @@ fun PreferencesSection(vm: AppViewModel = hiltViewModel()) {
         SwitchRow(S.prefAutoPlayNext, S.prefAutoPlayNextHint, p.autoPlayNextEpisode) { vm.setAutoPlayNext(it) }
         SwitchRow(S.prefAutoPlayLast, S.prefAutoPlayLastHint, p.autoPlayLastOnLaunch) { vm.setAutoPlayLast(it) }
 
-        PrefRow(label = S.settingsRefreshPlaylists) {
-            IntervalChip(S.prefIntervalLaunch, 0, p.syncIntervalHours, vm::setSyncInterval)
-            IntervalChip(S.prefInterval6, 6, p.syncIntervalHours, vm::setSyncInterval)
-            IntervalChip(S.prefInterval12, 12, p.syncIntervalHours, vm::setSyncInterval)
-            IntervalChip(S.prefInterval24, 24, p.syncIntervalHours, vm::setSyncInterval)
+        if (p.autoSyncOnLaunch) {
+            PrefRow(label = S.settingsRefreshPlaylists) {
+                IntervalChip(S.prefIntervalLaunch, 0, p.syncIntervalHours, vm::setSyncInterval)
+                IntervalChip(S.prefInterval6, 6, p.syncIntervalHours, vm::setSyncInterval)
+                IntervalChip(S.prefInterval12, 12, p.syncIntervalHours, vm::setSyncInterval)
+                IntervalChip(S.prefInterval24, 24, p.syncIntervalHours, vm::setSyncInterval)
+            }
         }
 
         PrefRow(label = S.settingsLanguage) {

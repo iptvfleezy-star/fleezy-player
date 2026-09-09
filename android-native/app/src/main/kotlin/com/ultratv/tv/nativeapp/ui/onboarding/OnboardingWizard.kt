@@ -66,18 +66,22 @@ class OnboardingViewModel @Inject constructor(
         viewModelScope.launch {
             _syncing.value = true
             _message.value = "Signing in…"
+            var providerId: Long? = null
             try {
-                val id = provider.addXtream(
+                providerId = provider.addXtream(
                     FleezyConfig.PROVIDER_NAME,
                     FleezyConfig.XTREAM_BASE_URL,
                     username.trim(),
                     password,
                 )
-                provider.setDefault(id)
-                provider.syncAll(id) { step -> _message.value = step }
+                provider.setDefault(providerId)
+                provider.syncAll(providerId) { step -> _message.value = step }
                 prefs.markOnboardingSeen()
                 _message.value = "Ready"
             } catch (t: Throwable) {
+                providerId?.let { id ->
+                    runCatching { provider.delete(id) }
+                }
                 _message.value = "Sign in failed: " + (t.message ?: "Check your username and password")
             } finally {
                 _syncing.value = false

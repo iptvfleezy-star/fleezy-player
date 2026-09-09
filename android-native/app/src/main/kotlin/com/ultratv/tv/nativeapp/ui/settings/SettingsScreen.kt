@@ -38,9 +38,8 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
-private enum class OpenDialog { NONE, XTREAM, M3U_URL, STALKER, WORKER, CONFIG_PASSWORD }
+private enum class OpenDialog { NONE, XTREAM }
 
 @OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
 @Composable
@@ -59,7 +58,6 @@ fun SettingsScreen(
     val savedMsg = S.toastBackupSaved
     val saveFailedMsg = S.toastSaveFailed
     val emptyFileMsg = S.toastEmptyFile
-    val configPwdSavedMsg = S.toastConfigPasswordSaved
     val backupReadyMsg = S.toastBackupReady
     val restoredTemplate = S.toastRestoredTemplate
     val restoreFailedPrefix = S.toastRestoreFailed
@@ -121,35 +119,9 @@ fun SettingsScreen(
             val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
             runCatching { ctx.contentResolver.takePersistableUriPermission(tree, flags) }
             vm.setLocalLogosFolderUri(tree.toString())
-            com.ultratv.tv.nativeapp.ui.common.Toaster.ok("Dossier logos enregistré")
+            com.ultratv.tv.nativeapp.ui.common.Toaster.ok("Logo folder saved")
         },
     )
-
-    val pickFile = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
-        onResult = { uri ->
-            if (uri == null) return@rememberLauncherForActivityResult
-            scope.launch {
-                val (label, text) = withContext(Dispatchers.IO) {
-                    val display = runCatching {
-                        ctx.contentResolver.query(uri, null, null, null, null)?.use { c ->
-                            val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
-                            if (idx >= 0 && c.moveToFirst()) c.getString(idx) else uri.lastPathSegment
-                        }
-                    }.getOrNull() ?: uri.toString()
-                    val body = ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        ?.toString(Charsets.UTF_8).orEmpty()
-                    display to body
-                }
-                vm.addM3uLocal("", label ?: "Local", text)
-            }
-        },
-    )
-
-    // Worker URL is now stored in DataStore (per-device), never hard-coded.
-    // Each user provisions their own worker and pastes its URL here once.
-    val workerBase by vm.workerBaseUrl.collectAsState()
-    val configPwd by vm.configPassword.collectAsState()
 
     val T = com.ultratv.tv.nativeapp.ui.theme.UltraTokens
     val F = com.ultratv.tv.nativeapp.ui.theme.UltraFonts
@@ -161,7 +133,7 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            "RÉGLAGES",
+            "SETTINGS",
             color = T.Fg3,
             fontSize = 11.sp,
             letterSpacing = 2.3.sp,
@@ -177,94 +149,11 @@ fun SettingsScreen(
         )
         Spacer(Modifier.height(8.dp))
 
-        // Upstream update UI disabled for Fleezy. A Fleezy-hosted updater will replace it later.
-        if (false) {
-        val updateInfo by com.ultratv.tv.nativeapp.update.UpdateChecker.state.collectAsState()
-        var checking by remember { mutableStateOf(false) }
-        var checkMsg by remember { mutableStateOf<String?>(null) }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = {
-                    if (checking) return@Button
-                    checking = true
-                    checkMsg = null
-                    scope.launch {
-                        val info = com.ultratv.tv.nativeapp.update.UpdateChecker.checkForUpdate()
-                        checking = false
-                        checkMsg = if (info != null) S.settingsUpdateAvailableTemplate.format(info.versionName)
-                        else S.settingsUpToDateTemplate.format(com.ultratv.tv.nativeapp.BuildConfig.VERSION_NAME)
-                    }
-                },
-            ) {
-                Text(if (checking) S.settingsCheckingForUpdates else S.settingsCheckForUpdates, fontSize = 14.sp)
-            }
-            checkMsg?.let { Text(it, color = T.Fg3, fontSize = 13.sp) }
-            if (updateInfo != null) {
-                Text(
-                    "v${updateInfo!!.versionName} prête à installer",
-                    color = T.Accent,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                )
-            }
-        }
-        Spacer(Modifier.height(16.dp))
-        }
-
-        // ---- 1. Legacy cloud sync hidden in Fleezy ----
-        if (false) {
-        SectionCard {
-            Text(S.settingsAutoImportTitle, color = MaterialTheme.colorScheme.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(S.settingsYourMac, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-                Text(
-                    vm.deviceMacAddress,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                )
-            }
-            Text(
-                S.settingsMacHint,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    workerBase,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = 13.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                Button(onClick = { openDialog = OpenDialog.WORKER }) { Text(S.change) }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    S.settingsConfigPasswordLabel + if (configPwd.isBlank()) S.settingsConfigPasswordNone
-                    else "•".repeat(configPwd.length.coerceAtMost(20)),
-                    color = if (configPwd.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.onBackground,
-                    fontSize = 13.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                Button(onClick = { openDialog = OpenDialog.CONFIG_PASSWORD }) {
-                    Text(if (configPwd.isBlank()) S.settingsSet else S.change)
-                }
-            }
-            Button(
-                onClick = { vm.importByMac(workerBase.trim()) },
-                enabled = !syncing && workerBase.isNotBlank(),
-            ) { Text(if (syncing) S.settingsSyncing else S.settingsSyncFromCloud, fontSize = 15.sp) }
-        }
-        }
-
         // ---- 2. Fleezy account ----
         SectionCard {
-            Text(S.settingsAddProviderTitle, color = MaterialTheme.colorScheme.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Fleezy account", color = MaterialTheme.colorScheme.primary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
-                S.settingsAddProviderHint,
+                "Sign in with the username and password provided for your Fleezy account.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -298,7 +187,7 @@ fun SettingsScreen(
                                             .padding(horizontal = 6.dp, vertical = 2.dp),
                                     )
                                 }
-                                Text("${p.name}  ·  ${p.kind}", fontSize = 15.sp, color = MaterialTheme.colorScheme.onBackground)
+                                Text(p.name, fontSize = 15.sp, color = MaterialTheme.colorScheme.onBackground)
                             }
                         }
                         if (!p.active) {
@@ -344,7 +233,7 @@ fun SettingsScreen(
                 Button(onClick = {
                     vm.prepareBackup(backupReadyMsg, password = backupPwd.takeIf { it.isNotEmpty() })
                     val suffix = if (backupPwd.isNotEmpty()) "encrypted" else "plain"
-                    saveBackup.launch("ultra-tv-backup-${System.currentTimeMillis()}-$suffix.json")
+                    saveBackup.launch("fleezy-player-backup-${System.currentTimeMillis()}-$suffix.json")
                 }) { Text(S.settingsBackupExport) }
                 Button(onClick = {
                     loadBackup.launch(arrayOf("application/json", "*/*"))
@@ -354,17 +243,17 @@ fun SettingsScreen(
 
         // ---- 4c. Local channel logos ----
         SectionCard {
-            Text("Logos chaînes locaux", color = MaterialTheme.colorScheme.onBackground, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("Local channel logos", color = MaterialTheme.colorScheme.onBackground, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
-                "Choisis un dossier (USB / interne) avec des PNG nommés d'après le tvg-id ou le nom de chaîne. " +
-                    "Les fichiers du dossier remplacent les logos du provider à l'affichage.",
+                "Choose a folder (USB or internal storage) containing PNG files named after the tvg-id or channel name. " +
+                    "Files in this folder override provider logos in the app.",
                 color = T.Fg3,
                 fontSize = 12.sp,
             )
             val currentUri by vm.localLogosFolderUri.collectAsState()
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = { pickLogosFolder.launch(null) }) {
-                    Text(if (currentUri.isBlank()) "Choisir un dossier" else "Changer le dossier", fontSize = 14.sp)
+                    Text(if (currentUri.isBlank()) "Choose folder" else "Change folder", fontSize = 14.sp)
                 }
                 if (currentUri.isNotBlank()) {
                     Text(
@@ -399,86 +288,7 @@ fun SettingsScreen(
                 vm.addAndSync(name, url, user, pass); openDialog = OpenDialog.NONE
             },
         )
-        OpenDialog.M3U_URL -> M3uDialog(
-            onDismiss = { openDialog = OpenDialog.NONE },
-            onSubmit = { name, url ->
-                vm.addM3uAndSync(name, url); openDialog = OpenDialog.NONE
-            },
-        )
-        OpenDialog.STALKER -> StalkerDialog(
-            onDismiss = { openDialog = OpenDialog.NONE },
-            onSubmit = { name, url, mac ->
-                vm.addStalkerAndSync(name, url, mac); openDialog = OpenDialog.NONE
-            },
-        )
-        OpenDialog.WORKER -> WorkerUrlDialog(
-            initial = workerBase,
-            onDismiss = { openDialog = OpenDialog.NONE },
-            onSubmit = { url ->
-                vm.saveWorkerBase(url); openDialog = OpenDialog.NONE
-            },
-        )
-        OpenDialog.CONFIG_PASSWORD -> ConfigPasswordDialog(
-            initial = configPwd,
-            onDismiss = { openDialog = OpenDialog.NONE },
-            onSubmit = { pwd ->
-                vm.saveConfigPassword(pwd); openDialog = OpenDialog.NONE
-                com.ultratv.tv.nativeapp.ui.common.Toaster.ok(configPwdSavedMsg)
-            },
-        )
         OpenDialog.NONE -> Unit
-    }
-}
-
-@OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
-@Composable
-private fun ConfigPasswordDialog(initial: String, onDismiss: () -> Unit, onSubmit: (String) -> Unit) {
-    var pwd by remember { mutableStateOf(initial) }
-    val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
-    AddProviderDialog(
-        title = S.settingsConfigPwdDialogTitle,
-        onDismiss = onDismiss,
-        onSubmit = { onSubmit(pwd) },
-        canSubmit = true,
-    ) {
-        Text(
-            S.settingsConfigPwdDialogHint,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 12.sp,
-        )
-        FormField(
-            label = S.settingsConfigPwdFieldLabel,
-            value = pwd,
-            onChange = { pwd = it },
-            placeholder = S.settingsConfigPwdFieldPlaceholder,
-            password = true,
-            autoFocus = true,
-        )
-    }
-}
-
-@OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
-@Composable
-private fun WorkerUrlDialog(initial: String, onDismiss: () -> Unit, onSubmit: (String) -> Unit) {
-    var url by remember { mutableStateOf(initial) }
-    val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
-    AddProviderDialog(
-        title = S.settingsWorkerDialogTitle,
-        onDismiss = onDismiss,
-        onSubmit = { onSubmit(url) },
-        canSubmit = url.isNotBlank(),
-    ) {
-        Text(
-            S.settingsWorkerDialogHint,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 12.sp,
-        )
-        FormField(
-            label = S.settingsWorkerFieldLabel,
-            value = url,
-            onChange = { url = it },
-            placeholder = "https://your-config.your-acct.workers.dev",
-        )
     }
 }
 

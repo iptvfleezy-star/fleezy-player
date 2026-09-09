@@ -38,6 +38,29 @@ import javax.inject.Singleton
 class XtreamClient @Inject constructor(private val ok: OkHttpClient) {
     private val json = Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true }
 
+    // ---- Authentication ----
+
+    /**
+     * Validates Xtream credentials before any catalog sync. Xtream servers
+     * normally return a user_info object with auth=1 for valid accounts.
+     * Throwing here lets onboarding stay on the sign-in screen instead of
+     * accepting bad credentials and showing an empty library.
+     */
+    suspend fun validateCredentials(p: ProviderEntity) {
+        val body = get("${p.baseUrl}/player_api.php?username=${p.username.urlEnc()}&password=${p.password.urlEnc()}")
+        val root = runCatching { json.parseToJsonElement(body) as? JsonObject }.getOrNull()
+            ?: error("Invalid response from Fleezy server")
+        val info = root["user_info"] as? JsonObject
+            ?: error("Invalid username or password")
+        val auth = info["auth"]?.str()
+        if (auth != "1") error("Invalid username or password")
+
+        val status = info["status"]?.str()
+        if (!status.isNullOrBlank() && !status.equals("Active", ignoreCase = true)) {
+            error("Account status: $status")
+        }
+    }
+
     // ---- Live ----
 
     suspend fun fetchLiveCategories(p: ProviderEntity): List<CategoryEntity> = arrAt(p, "get_live_categories") { o ->
@@ -182,7 +205,7 @@ class XtreamClient @Inject constructor(private val ok: OkHttpClient) {
 
     private suspend fun get(url: String): String = withContext(Dispatchers.IO) {
         ok.newCall(Request.Builder().url(url).build()).execute().use { resp ->
-            if (!resp.isSuccessful) error("HTTP ${resp.code} $url")
+            if (!resp.isSuccessful) error("Server returned HTTP ${resp.code}")
             resp.body?.string().orEmpty()
         }
     }

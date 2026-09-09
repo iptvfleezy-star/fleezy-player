@@ -226,6 +226,7 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     var displayMenu by remember { mutableStateOf(false) }
     var aspectMode by remember { mutableStateOf(AspectMode.Fit) }
     var playbackSpeed by remember { mutableStateOf(1.0f) }
+    var playbackError by remember { mutableStateOf<String?>(null) }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
 
     // Load prefs off the main thread. runBlocking here blocked the main thread
@@ -266,6 +267,9 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         // — that crashed HTTP playback. The RoutingDataSource below owns
         // the backing instance for the whole open-read-close cycle.
         val httpFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(15_000)
+            .setReadTimeoutMs(30_000)
         val defaultFactory = androidx.media3.datasource.DefaultDataSource.Factory(context, httpFactory)
         val rtmpFactory = androidx.media3.datasource.rtmp.RtmpDataSource.Factory()
         val routingFactory = androidx.media3.datasource.DataSource.Factory {
@@ -317,10 +321,17 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             // stream silently never starts (codec, 403, DNS, etc).
             addListener(object : androidx.media3.common.Player.Listener {
                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                    com.ultratv.tv.nativeapp.RemoteLog.error(
-                        "player",
-                        "code=${error.errorCodeName} ${error.message ?: ""}",
-                    )
+                    playbackError = when (error.errorCode) {
+                        androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+                        androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ->
+                            "Network connection failed"
+                        androidx.media3.common.PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS ->
+                            "The stream server rejected the request"
+                        androidx.media3.common.PlaybackException.ERROR_CODE_DECODING_FAILED,
+                        androidx.media3.common.PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ->
+                            "This stream could not be decoded on this device"
+                        else -> "Playback failed"
+                    }
                 }
                 override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
                     if (!playbackPrefs.autoFrameRate) return
@@ -341,7 +352,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                     if (lp.preferredDisplayModeId != target.modeId) {
                         lp.preferredDisplayModeId = target.modeId
                         act.window.attributes = lp
-                        com.ultratv.tv.nativeapp.RemoteLog.debug("player", "switched display to ${target.refreshRate}Hz for ${fps}fps")
                     }
                 }
 
@@ -353,7 +363,9 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                         androidx.media3.common.Player.STATE_ENDED -> "ended"
                         else -> "?"
                     }
-                    com.ultratv.tv.nativeapp.RemoteLog.debug("player", "state=$name")
+                    if (state == androidx.media3.common.Player.STATE_READY) {
+                        playbackError = null
+                    }
                 }
             })
         }
@@ -383,6 +395,7 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     }
     LaunchedEffect(currentUrl) {
         if (currentUrl.isNotBlank()) {
+            playbackError = null
             player.setMediaItem(MediaItem.fromUri(currentUrl))
             player.prepare()
             // Seek to last persisted position if VOD/episode has one. Awaits the
@@ -557,9 +570,41 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                         color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp,
                     )
                 }
-                Text(currentUrl.substringBefore('?').takeLast(60), color = Color.White.copy(alpha = 0.6f), fontSize = 12.sp)
             }
         }
+        playbackError?.let { message ->
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .widthIn(min = 320.dp, max = 520.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xE6111318))
+                    .border(1.dp, Color(0xFF30343D), RoundedCornerShape(16.dp))
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    message,
+                    color = Color.White,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Check the connection or try the stream again.",
+                    color = Color.White.copy(alpha = 0.65f),
+                    fontSize = 13.sp,
+                )
+                Button(onClick = {
+                    playbackError = null
+                    player.prepare()
+                    player.playWhenReady = true
+                }) {
+                    Text("Retry")
+                }
+            }
+        }
+
         FlowRow(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -608,8 +653,8 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             Button(onClick = {
                 runCatching {
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(Uri.parse(url), "video/*")
-                        putExtra("title", title)
+                        setDataAndType(Uri.parse(currentUrl), "video/*")
+                        putExtra("title", currentTitle)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     context.startActivity(Intent.createChooser(intent, S.recordingsOpenWith))

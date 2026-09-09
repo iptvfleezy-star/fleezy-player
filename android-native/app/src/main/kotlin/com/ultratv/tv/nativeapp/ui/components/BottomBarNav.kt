@@ -30,9 +30,11 @@ private data class BottomItem(val route: String, val labelOf: (com.ultratv.tv.na
 private val items = listOf(
     BottomItem("home", { it.navHome }, "🏠"),
     BottomItem("live", { it.navLive }, "📺"),
+    BottomItem("guide", { it.navGuide }, "🗓"),
+    BottomItem("favorites", { it.navFavorites }, "★"),
+    BottomItem("search", { it.navSearch }, "🔍"),
     BottomItem("movies", { it.navMovies }, "🎬"),
     BottomItem("series", { it.navSeries }, "📚"),
-    BottomItem("search", { it.navSearch }, "🔍"),
     BottomItem("settings", { it.navSettings }, "⚙"),
 )
 

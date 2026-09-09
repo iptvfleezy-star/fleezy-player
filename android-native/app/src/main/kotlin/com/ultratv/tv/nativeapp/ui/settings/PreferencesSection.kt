@@ -55,11 +55,6 @@ fun PreferencesSection(vm: AppViewModel = hiltViewModel()) {
         // pref is left in UserPreferences for backwards compat but no
         // longer exposed in the UI.
 
-        SwitchRow(
-            title = S.settingsTelemetryTitle,
-            hint = S.settingsTelemetryHint,
-            value = p.telemetryEnabled,
-        ) { vm.setTelemetry(it) }
         SwitchRow(S.settingsAutoSync, S.prefAutoSyncHint, p.autoSyncOnLaunch) { vm.setAutoSync(it) }
 
         // Playback knobs added in v1.0.23
@@ -90,7 +85,6 @@ fun PreferencesSection(vm: AppViewModel = hiltViewModel()) {
         SwitchRow(S.prefHideAdult, S.prefHideAdultHint, p.hideAdultCategories) { vm.setHideAdult(it) }
         SwitchRow(S.prefResume, S.prefResumeHint, p.resumePlayback) { vm.setResumePlayback(it) }
         SwitchRow(S.prefAutoPlayNext, S.prefAutoPlayNextHint, p.autoPlayNextEpisode) { vm.setAutoPlayNext(it) }
-        SwitchRow(S.prefLaunchAtBoot, S.prefLaunchAtBootHint, p.launchAtBoot) { vm.setLaunchAtBoot(it) }
         SwitchRow(S.prefAutoPlayLast, S.prefAutoPlayLastHint, p.autoPlayLastOnLaunch) { vm.setAutoPlayLast(it) }
 
         PrefRow(label = S.settingsRefreshPlaylists) {

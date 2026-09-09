@@ -30,6 +30,7 @@ import javax.inject.Inject
  * list.
  */
 const val CATEGORY_ALL = "__all__"
+const val CATEGORY_FAVORITES = "__favorites__"
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -218,8 +219,22 @@ class LiveViewModel @Inject constructor(
             Triple(ps, cat, hidden)
         }.flatMapLatest { (ps, cat, hidden) ->
             val pid = ps.firstOrNull { it.active }?.id ?: ps.firstOrNull()?.id
-            if (pid == null) flowOf(emptyList())
-            else {
+            if (pid == null) {
+                flowOf(emptyList())
+            } else if (cat == CATEGORY_FAVORITES) {
+                // Favorites should stay fast even on huge providers: resolve only
+                // the saved remote IDs instead of materialising every Live channel.
+                catalog.favoritesByKind(pid, "LIVE").map { favs ->
+                    val saved = ArrayList<ChannelEntity>(favs.size)
+                    for (fav in favs) {
+                        channelDao.byRemoteId(pid, fav.remoteId)?.let(saved::add)
+                    }
+                    saved.filter { ch ->
+                        val cid = ch.categoryId ?: return@filter true
+                        hiddenStore.keyFor("LIVE", pid, cid) !in hidden
+                    }
+                }
+            } else {
                 val base = if (cat == CATEGORY_ALL) {
                     catalog.channels(pid).map { list ->
                         list.filter { ch ->
@@ -230,8 +245,8 @@ class LiveViewModel @Inject constructor(
                 } else {
                     catalog.channelsForCategory(pid, cat)
                 }
-                // Reorder so favorited live channels float to the top of every
-                // view. We re-use the existing FavoriteEntity table (kind="LIVE").
+
+                // Keep saved channels at the top of normal category views.
                 combine(base, catalog.favoritesByKind(pid, "LIVE")) { all, favs ->
                     val favIds = favs.map { it.remoteId }.toSet()
                     val (pinned, rest) = all.partition { it.remoteId in favIds }

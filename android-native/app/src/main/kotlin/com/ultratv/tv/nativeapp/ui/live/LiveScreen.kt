@@ -110,6 +110,13 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                         onClick = { vm.selectCategory(CATEGORY_ALL) },
                     )
                 }
+                item("__favorites__") {
+                    CategoryRow(
+                        label = "★  Favorites",
+                        selected = selected == CATEGORY_FAVORITES,
+                        onClick = { vm.selectCategory(CATEGORY_FAVORITES) },
+                    )
+                }
                 items(cats, key = { it.id }) { cat ->
                     CategoryRow(
                         label = prettyCategoryName(cat.name) + if (cat.locked) "  🔒" else "",
@@ -137,8 +144,11 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                 .padding(top = 20.dp, start = 0.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            val title = if (selected == CATEGORY_ALL) S.liveAllChannels
-            else prettyCategoryName(cats.firstOrNull { it.remoteId == selected }?.name ?: "")
+            val title = when (selected) {
+                CATEGORY_ALL -> S.liveAllChannels
+                CATEGORY_FAVORITES -> S.favorites
+                else -> prettyCategoryName(cats.firstOrNull { it.remoteId == selected }?.name ?: "")
+            }
             Row(
                 modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,

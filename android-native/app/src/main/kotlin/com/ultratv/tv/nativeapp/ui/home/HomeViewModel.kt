@@ -9,6 +9,7 @@ import com.ultratv.tv.nativeapp.data.db.SeriesEntity
 import com.ultratv.tv.nativeapp.data.db.WatchHistoryEntity
 import com.ultratv.tv.nativeapp.data.repo.CatalogRepository
 import com.ultratv.tv.nativeapp.data.repo.HistoryRepository
+import com.ultratv.tv.nativeapp.data.repo.LivePlaybackQueue
 import com.ultratv.tv.nativeapp.data.repo.PlaybackContext
 import com.ultratv.tv.nativeapp.data.repo.ProviderRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,7 @@ class HomeViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val history: HistoryRepository,
     private val playback: PlaybackContext,
+    private val zapQueue: LivePlaybackQueue,
 ) : ViewModel() {
 
     val providers: StateFlow<List<ProviderEntity>> = provider.observeProviders()
@@ -54,33 +56,87 @@ class HomeViewModel @Inject constructor(
         .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else catalog.seriesList(id).map { l -> l.take(20) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val featuredChannels: StateFlow<List<ChannelEntity>> = pid
-        .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else catalog.channels(id).map { l -> l.take(30) } }
+    private val allChannels: StateFlow<List<ChannelEntity>> = pid
+        .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else catalog.channels(id) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    /** Sets the playback context from a history entry so the player can record proper context. */
-    fun playFromHistory(h: WatchHistoryEntity) {
-        playback.set(PlaybackContext.Item(
-            providerId = h.providerId,
-            kind = h.kind,
-            remoteId = h.remoteId,
-            title = h.title,
-            poster = h.poster,
-            streamUrl = h.streamUrl,
-            parentRemoteId = h.parentRemoteId,
-        ))
+    val featuredChannels: StateFlow<List<ChannelEntity>> = allChannels
+        .map { it.take(30) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Starts an item from Home history. Live entries are reconnected to their
+     * current ChannelEntity so URL resolution and D-pad zapping keep working.
+     */
+    fun playFromHistory(
+        h: WatchHistoryEntity,
+        onReady: (url: String, title: String) -> Unit,
+    ) {
+        if (h.kind == "LIVE") {
+            val all = allChannels.value
+            val channel = all.firstOrNull { it.remoteId == h.remoteId }
+            if (channel != null) {
+                val recentQueue = recentlyWatched.value
+                    .asSequence()
+                    .filter { it.kind == "LIVE" }
+                    .distinctBy { it.remoteId }
+                    .mapNotNull { item -> all.firstOrNull { it.remoteId == item.remoteId } }
+                    .toList()
+                startLive(
+                    channel = channel,
+                    queue = recentQueue.ifEmpty { listOf(channel) },
+                    onReady = onReady,
+                )
+                return
+            }
+        }
+
+        // Movies/episodes must not inherit a stale Live zap queue.
+        zapQueue.clear()
+        playback.set(
+            PlaybackContext.Item(
+                providerId = h.providerId,
+                kind = h.kind,
+                remoteId = h.remoteId,
+                title = h.title,
+                poster = h.poster,
+                streamUrl = h.streamUrl,
+                parentRemoteId = h.parentRemoteId,
+            )
+        )
+        onReady(h.streamUrl, h.title)
     }
 
-    /** Seeds playback state when a Live channel is opened from Home. */
-    fun playChannel(channel: ChannelEntity) {
-        playback.set(PlaybackContext.Item(
-            providerId = channel.providerId,
-            kind = "LIVE",
-            remoteId = channel.remoteId,
-            title = channel.name,
-            poster = channel.logo,
-            streamUrl = channel.streamUrl,
-        ))
+    /** Seeds a compact Home Live queue so UP/DOWN keeps working in the player. */
+    fun playChannel(
+        channel: ChannelEntity,
+        onReady: (url: String, title: String) -> Unit,
+    ) {
+        val featured = featuredChannels.value
+        val queue = if (featured.any { it.id == channel.id }) featured else listOf(channel)
+        startLive(channel, queue.ifEmpty { listOf(channel) }, onReady)
+    }
+
+    private fun startLive(
+        channel: ChannelEntity,
+        queue: List<ChannelEntity>,
+        onReady: (url: String, title: String) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
+            zapQueue.set(queue, channel)
+            playback.set(
+                PlaybackContext.Item(
+                    providerId = channel.providerId,
+                    kind = "LIVE",
+                    remoteId = channel.remoteId,
+                    title = channel.name,
+                    poster = channel.logo,
+                    streamUrl = resolved,
+                )
+            )
+            onReady(resolved, channel.name)
+        }
     }
 
     /** Removes an entry from history (used by "Dismiss" on Continue watching). */

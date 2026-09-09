@@ -67,6 +67,10 @@ fun HomeScreen(
         .distinctBy { it.remoteId }
         .take(12)
         .toList()
+    val continueKeys = continueW.map { it.kind to it.remoteId }.toSet()
+    val recentNonLive = recent.filter {
+        it.kind != "LIVE" && (it.kind to it.remoteId) !in continueKeys
+    }
 
     Column(
         Modifier
@@ -155,8 +159,26 @@ fun HomeScreen(
                     subtitle = "Live",
                     aspect = 16f / 9f,
                 ) {
-                    vm.playFromHistory(h)
-                    onPlay(h.streamUrl, h.title)
+                    vm.playFromHistory(h, onPlay)
+                }
+            }
+        }
+
+        if (channels.isNotEmpty()) {
+            ContentRail(
+                title = S.homeFeaturedChannels,
+                eyebrow = "Live TV",
+                items = channels,
+                itemKey = { it.id },
+                cardWidth = 260.dp,
+            ) { c ->
+                PosterCard(
+                    title = c.name,
+                    poster = c.logo,
+                    subtitle = "Live",
+                    aspect = 16f / 9f,
+                ) {
+                    vm.playChannel(c, onPlay)
                 }
             }
         }
@@ -188,11 +210,11 @@ fun HomeScreen(
             }
         }
 
-        if (recent.isNotEmpty() && recent.size > continueW.size) {
+        if (recentNonLive.isNotEmpty()) {
             ContentRail(
                 title = S.homeRecentlyWatched,
                 cardWidth = 240.dp,
-                items = recent,
+                items = recentNonLive,
                 itemKey = { "r-${it.kind}-${it.remoteId}" },
             ) { h ->
                 PosterCard(
@@ -237,25 +259,6 @@ fun HomeScreen(
             }
         }
 
-        if (channels.isNotEmpty()) {
-            ContentRail(
-                title = S.homeFeaturedChannels,
-                eyebrow = "Live TV",
-                items = channels,
-                itemKey = { it.id },
-                cardWidth = 260.dp,
-            ) { c ->
-                PosterCard(
-                    title = c.name,
-                    poster = c.logo,
-                    subtitle = "Live",
-                    aspect = 16f / 9f,
-                ) {
-                    vm.playChannel(c)
-                    onPlay(c.streamUrl, c.name)
-                }
-            }
-        }
         Spacer(Modifier.height(40.dp))
     }
 
@@ -264,8 +267,7 @@ fun HomeScreen(
         ContinueActions(
             title = h.title,
             onResume = {
-                vm.playFromHistory(h)
-                onPlay(h.streamUrl, h.title)
+                vm.playFromHistory(h, onPlay)
                 actionsFor = null
             },
             onDismiss = {

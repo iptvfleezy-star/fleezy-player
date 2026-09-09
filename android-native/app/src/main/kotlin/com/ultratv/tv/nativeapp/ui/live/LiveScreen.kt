@@ -433,8 +433,13 @@ private fun LivePreviewPane(
             androidx.compose.ui.viewinterop.AndroidView(
                 modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(18.dp)),
                 factory = { ctx ->
-                    androidx.media3.ui.PlayerView(ctx).apply {
+                    (android.view.LayoutInflater.from(ctx).inflate(
+                        com.ultratv.tv.nativeapp.R.layout.fleezy_player_view,
+                        null,
+                        false,
+                    ) as androidx.media3.ui.PlayerView).apply {
                         useController = false
+                        resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT
                         player = miniPlayer
                     }
                 },

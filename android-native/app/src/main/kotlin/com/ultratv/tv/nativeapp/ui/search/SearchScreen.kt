@@ -113,7 +113,7 @@ private val KB_ROWS = listOf(
     "0123456789".toList(),
 )
 
-private val FILTERS = listOf("All", "Movies", "Series", "Channels", "Sports", "Documentary", "Resume")
+private val FILTERS = listOf("All", "Movies", "Series", "Channels")
 
 @OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
 @Composable
@@ -139,7 +139,7 @@ fun SearchScreen(
                 .padding(start = 40.dp, end = 40.dp),
         ) {
             Text(
-                "RECHERCHE",
+                "SEARCH",
                 color = UltraTokens.Fg3,
                 fontSize = 11.sp,
                 letterSpacing = 2.3.sp,
@@ -157,7 +157,7 @@ fun SearchScreen(
             ) {
                 if (q.isEmpty()) {
                     Text(
-                        "Tapez votre recherche…",
+                        "Type to search…",
                         color = UltraTokens.Fg4,
                         fontSize = 22.sp,
                         fontFamily = UltraFonts.Serif,
@@ -207,17 +207,17 @@ fun SearchScreen(
                     modifier = Modifier.padding(top = 4.dp),
                 ) {
                     KeyboardKey(
-                        label = "Espace",
+                        label = "Space",
                         modifier = Modifier.weight(2f).height(40.dp),
                         onClick = { vm.append(' ') },
                     )
                     KeyboardKey(
-                        label = "⌫ Suppr",
+                        label = "⌫ Delete",
                         modifier = Modifier.weight(1.2f).height(40.dp),
                         onClick = { vm.backspace() },
                     )
                     KeyboardKey(
-                        label = "Effacer",
+                        label = "Clear",
                         modifier = Modifier.weight(1f).height(40.dp),
                         danger = true,
                         onClick = { vm.clear() },
@@ -228,7 +228,7 @@ fun SearchScreen(
             Spacer(Modifier.height(24.dp))
             if (recent.isNotEmpty()) {
                 Text(
-                    "RÉCENTES",
+                    "RECENT",
                     color = UltraTokens.Fg3,
                     fontSize = 11.sp,
                     letterSpacing = 2.3.sp,
@@ -302,14 +302,14 @@ fun SearchScreen(
             val total = r.channels.size + r.movies.size + r.series.size
             if (q.isBlank()) {
                 Text(
-                    "Commencez à taper pour rechercher.",
+                    "Start typing to search.",
                     color = UltraTokens.Fg3,
                     fontSize = 14.sp,
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "$total RÉSULTATS POUR",
+                        "$total RESULTS FOR",
                         color = UltraTokens.Fg3,
                         fontSize = 11.sp,
                         letterSpacing = 2.3.sp,
@@ -328,7 +328,7 @@ fun SearchScreen(
 
             val showAll = activeFilter == 0
             if (showAll || activeFilter == 1) {
-                ResultSection("Films", r.movies, total) { m ->
+                ResultSection("Movies", r.movies, total) { m ->
                     SquareResultCard(m.name, m.year?.toString(), onClick = { onOpenMovie(m.id) })
                 }
             }

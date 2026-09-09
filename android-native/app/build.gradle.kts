@@ -165,7 +165,6 @@ dependencies {
     implementation(libs.room.paging)
 
     implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
 
     // Tests — runs on the local JVM with Robolectric for Android types we
     // can't easily strip out (android.util.Base64).

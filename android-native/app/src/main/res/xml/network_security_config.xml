@@ -1,22 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
     <!--
-      IPTV providers (Xtream Codes, Stalker portals, naked M3U hosts) commonly
-      ship HTTP-only endpoints, so we keep cleartext allowed by default.
+      Many IPTV/Xtream origins are still HTTP-only, so development currently
+      permits cleartext provider traffic. The old Ultra TV updater/telemetry
+      endpoints are no longer used by Fleezy Player and are intentionally not
+      listed here.
 
-      The GitHub Releases auto-update flow and the Cloudflare Worker telemetry
-      endpoints are pinned to TLS — any plain-HTTP attempt to those hosts
-      fails, defeating a downgrade attack on the update channel.
+      Before production, prefer a Fleezy-owned HTTPS gateway so credentials
+      and provider traffic are protected in transit.
     -->
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system"/>
         </trust-anchors>
     </base-config>
-    <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">github.com</domain>
-        <domain includeSubdomains="true">githubusercontent.com</domain>
-        <domain includeSubdomains="true">api.github.com</domain>
-        <domain includeSubdomains="true">khalilbenaz.workers.dev</domain>
-    </domain-config>
 </network-security-config>

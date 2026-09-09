@@ -47,21 +47,27 @@ jobs:
           chmod +x gradlew
           ./gradlew compileDebugKotlin --console=plain --stacktrace
 
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --console=plain --stacktrace
+
       - name: Build debug APK
         run: ./gradlew assembleDebug --console=plain --stacktrace
 
-      - name: Stage APK
+      - name: Stage APK and checksum
         run: |
           mkdir -p ../artifacts
-          cp app/build/outputs/apk/debug/app-debug.apk ../artifacts/FleezyPlayer-${{ steps.version.outputs.version }}-debug.apk
+          APK="FleezyPlayer-${{ steps.version.outputs.version }}-debug.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "../artifacts/$APK"
+          (
+            cd ../artifacts
+            sha256sum "$APK" > "$APK.sha256"
+          )
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: FleezyPlayer-${{ steps.version.outputs.version }}-debug
-          path: artifacts/FleezyPlayer-${{ steps.version.outputs.version }}-debug.apk
+          path: |
+            artifacts/FleezyPlayer-${{ steps.version.outputs.version }}-debug.apk
+            artifacts/FleezyPlayer-${{ steps.version.outputs.version }}-debug.apk.sha256
           if-no-files-found: error
-
-      - name: Unit tests
-        continue-on-error: true
-        run: ./gradlew testDebugUnitTest --console=plain --stacktrace

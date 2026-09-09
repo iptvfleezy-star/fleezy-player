@@ -98,6 +98,28 @@ class LiveViewModel @Inject constructor(
     val nowNext: StateFlow<Map<Long, Pair<com.ultratv.tv.nativeapp.data.db.EpgEntity?, com.ultratv.tv.nativeapp.data.db.EpgEntity?>>> = _nowNext.asStateFlow()
 
     private val epgDao = epgDaoArg
+    private var shortEpgJob: kotlinx.coroutines.Job? = null
+    private val shortEpgFetchedAt = mutableMapOf<Long, Long>()
+
+    /**
+     * Fetch short EPG only for the channel the user pauses on. This keeps Live
+     * browsing responsive and avoids downloading the full XMLTV feed just to
+     * populate Now/Next. A 700 ms debounce prevents rapid D-pad navigation from
+     * hammering the provider; each channel is refreshed at most every 5 min.
+     */
+    fun ensureShortEpg(channel: ChannelEntity) {
+        val now = System.currentTimeMillis()
+        val last = shortEpgFetchedAt[channel.id] ?: 0L
+        if (now - last < 5 * 60_000L) return
+
+        shortEpgJob?.cancel()
+        shortEpgJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(700)
+            runCatching { catalog.refreshShortEpg(channel.id) }
+            shortEpgFetchedAt[channel.id] = System.currentTimeMillis()
+            refreshNowNext(channels.value.map { it.id })
+        }
+    }
 
     /** Adds a reminder for a future programme on the given channel. */
     fun addReminder(channel: ChannelEntity, prog: com.ultratv.tv.nativeapp.data.db.EpgEntity) {

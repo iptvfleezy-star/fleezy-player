@@ -185,7 +185,10 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                             active = i == activeIdx,
                             nowProgramme = nn?.first,
                             nextProgramme = nn?.second,
-                            onFocus = { activeIdx = i },
+                            onFocus = {
+                                activeIdx = i
+                                vm.ensureShortEpg(c)
+                            },
                         ) {
                             activeIdx = i
                             if (isLocked) pinPrompt = c

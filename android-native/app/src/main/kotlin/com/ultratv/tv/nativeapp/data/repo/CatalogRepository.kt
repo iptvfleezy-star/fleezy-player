@@ -105,6 +105,7 @@ class CatalogRepository @Inject constructor(
     suspend fun refreshShortEpg(channelId: Long) {
         val ch = channelDao.byId(channelId) ?: return
         val p = providerDao.byId(ch.providerId) ?: return
+        if (p.kind != "XTREAM") return
         val rows = runCatching { xtream.fetchShortEpg(p, ch.remoteId, ch.id) }.getOrDefault(emptyList())
         if (rows.isNotEmpty()) {
             epgDao.deleteForChannel(ch.id)

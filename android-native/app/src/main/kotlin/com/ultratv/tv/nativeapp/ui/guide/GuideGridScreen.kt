@@ -63,7 +63,7 @@ import javax.inject.Inject
  *  user's current scroll anchor; 1 hour = 240 dp on screen. */
 private const val PX_PER_HOUR_DP = 240
 private const val PX_PER_MIN_DP = PX_PER_HOUR_DP / 60f
-private const val ROW_HEIGHT_DP = 60
+private const val ROW_HEIGHT_DP = 68
 
 /** Provider-wide EPG view. Loads everything in [rangeForChannels] for the
  *  visible channel set; the LazyColumn only renders visible rows so the
@@ -147,7 +147,13 @@ fun GuideGridScreen(
     // Reload programmes whenever the channel list changes.
     LaunchedEffect(channels) { vm.reloadFor(channels) }
 
-    val now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
     // Time axis: 12h window starting at "now floored to top of hour minus 30 min".
     val windowStart = remember(now) { (now / 3_600_000L) * 3_600_000L - 30 * 60_000L }
     val windowEnd = remember(windowStart) { windowStart + 12 * 60 * 60 * 1000L }
@@ -155,6 +161,8 @@ fun GuideGridScreen(
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
     val T = com.ultratv.tv.nativeapp.ui.theme.UltraTokens
     val F = com.ultratv.tv.nativeapp.ui.theme.UltraFonts
+    val hScroll = rememberScrollState()
+    val guideScope = androidx.compose.runtime.rememberCoroutineScope()
     Column(Modifier.fillMaxSize()) {
         // Editorial header
         androidx.compose.foundation.layout.Spacer(Modifier.height(40.dp))
@@ -183,17 +191,22 @@ fun GuideGridScreen(
                     color = T.Fg3,
                 )
                 Button(
+                    onClick = { guideScope.launch { hScroll.animateScrollTo(0) } },
+                    colors = androidx.tv.material3.ButtonDefaults.colors(containerColor = T.AccentSoft),
+                ) {
+                    Text("NOW", fontSize = 13.sp, color = T.Fg)
+                }
+                Button(
                     onClick = { vm.refreshXmltv() },
                     enabled = !loading,
                     colors = androidx.tv.material3.ButtonDefaults.colors(containerColor = T.Surface2),
                 ) {
-                    Text(if (loading) S.guideLoading else S.guideRefreshXmltv, fontSize = 13.sp, color = T.Fg2)
+                    Text(if (loading) S.guideLoading else "REFRESH GUIDE", fontSize = 13.sp, color = T.Fg2)
                 }
             }
         }
 
         // Time header row — sticky to the top of the right pane.
-        val hScroll = rememberScrollState()
         Row(
             Modifier
                 .fillMaxWidth()
@@ -296,7 +309,11 @@ private fun GuideRow(
             onClick = onPlay,
             modifier = Modifier.width(200.dp).fillMaxHeight().padding(end = 8.dp),
             shape = CardDefaults.shape(RoundedCornerShape(10.dp)),
-            colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(containerColor = T.Surface1),
+            colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
+                containerColor = T.Surface1,
+                focusedContainerColor = T.Surface2,
+                focusedContentColor = T.Fg,
+            ),
         ) {
             Row(
                 Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 6.dp),
@@ -331,9 +348,43 @@ private fun GuideRow(
             val hours = ((windowEndMs - windowStartMs) / 3_600_000.0).coerceAtLeast(1.0)
             val totalWidthDp = (hours * PX_PER_HOUR_DP).toInt().dp
             Box(Modifier.width(totalWidthDp).fillMaxHeight()) {
-                programmes
+                val visibleProgrammes = programmes
                     .filter { it.endMs > windowStartMs && it.startMs < windowEndMs }
-                    .forEach { prog ->
+
+                if (visibleProgrammes.isEmpty()) {
+                    Card(
+                        onClick = onPlay,
+                        modifier = Modifier
+                            .padding(start = 4.dp, top = 4.dp, bottom = 4.dp)
+                            .width(300.dp)
+                            .fillMaxHeight(),
+                        shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
+                        colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
+                            containerColor = T.Surface1,
+                            focusedContainerColor = T.Surface2,
+                            focusedContentColor = T.Fg,
+                        ),
+                    ) {
+                        Column(
+                            Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                "No guide data",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = T.Fg2,
+                            )
+                            Text(
+                                "Press REFRESH GUIDE above",
+                                fontSize = 10.sp,
+                                color = T.Fg4,
+                            )
+                        }
+                    }
+                }
+
+                visibleProgrammes.forEach { prog ->
                         val start = prog.startMs.coerceAtLeast(windowStartMs)
                         val end = prog.endMs.coerceAtMost(windowEndMs)
                         val leftDp = ((start - windowStartMs) / 60_000f * PX_PER_MIN_DP).toInt().dp
@@ -352,7 +403,11 @@ private fun GuideRow(
                                     focusedContainerColor = T.Accent,
                                     focusedContentColor = androidx.compose.ui.graphics.Color.White,
                                 )
-                            else com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(containerColor = T.Surface1),
+                            else com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
+                                containerColor = T.Surface1,
+                                focusedContainerColor = T.Surface2,
+                                focusedContentColor = T.Fg,
+                            ),
                         ) {
                             Column(Modifier.fillMaxSize().padding(horizontal = 10.dp, vertical = 8.dp)) {
                                 Text(
@@ -384,6 +439,25 @@ private fun GuideRow(
                                             fontSize = 9.sp,
                                             letterSpacing = 0.6.sp,
                                             fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                }
+                                if (isLive) {
+                                    val duration = (prog.endMs - prog.startMs).coerceAtLeast(1L)
+                                    val progress = ((nowMs - prog.startMs).toFloat() / duration.toFloat())
+                                        .coerceIn(0f, 1f)
+                                    androidx.compose.foundation.layout.Spacer(Modifier.height(6.dp))
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(3.dp)
+                                            .background(T.Line, RoundedCornerShape(2.dp)),
+                                    ) {
+                                        Box(
+                                            Modifier
+                                                .fillMaxWidth(progress)
+                                                .height(3.dp)
+                                                .background(T.Accent, RoundedCornerShape(2.dp)),
                                         )
                                     }
                                 }

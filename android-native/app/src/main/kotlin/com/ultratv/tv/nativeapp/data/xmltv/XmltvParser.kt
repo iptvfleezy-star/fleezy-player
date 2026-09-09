@@ -61,7 +61,7 @@ class XmltvParser @Inject constructor(private val ok: OkHttpClient) {
                 val xmltvCh = parser.getAttributeValue(null, "channel")
                 val channelId = if (xmltvCh != null) channelMap[xmltvCh] else null
                 if (channelId == null) {
-                    skipToEndTag(parser, "programme")
+                    skipCurrentElement(parser)
                 } else {
                     val start = parseDate(parser.getAttributeValue(null, "start"))
                     val stop = parseDate(parser.getAttributeValue(null, "stop"))
@@ -75,7 +75,7 @@ class XmltvParser @Inject constructor(private val ok: OkHttpClient) {
                             when (parser.name) {
                                 "title" -> title = readText(parser)
                                 "desc" -> if (desc == null) desc = readText(parser)
-                                else -> skipToEndTag(parser, parser.name)
+                                else -> skipCurrentElement(parser)
                             }
                         }
                         if (e == XmlPullParser.END_DOCUMENT) break
@@ -107,13 +107,20 @@ class XmltvParser @Inject constructor(private val ok: OkHttpClient) {
         return sb.toString().trim()
     }
 
-    private fun skipToEndTag(parser: XmlPullParser, tag: String) {
+    /**
+     * Skip the element the parser is currently positioned on, including any
+     * nested children. Depth must be decremented on every END_TAG — checking
+     * only the outer tag causes one nested element to consume the rest of the
+     * XMLTV document.
+     */
+    private fun skipCurrentElement(parser: XmlPullParser) {
         var depth = 1
         while (depth > 0) {
-            val e = parser.next()
-            if (e == XmlPullParser.END_DOCUMENT) return
-            if (e == XmlPullParser.START_TAG) depth++
-            if (e == XmlPullParser.END_TAG && parser.name == tag) depth--
+            when (parser.next()) {
+                XmlPullParser.START_TAG -> depth++
+                XmlPullParser.END_TAG -> depth--
+                XmlPullParser.END_DOCUMENT -> return
+            }
         }
     }
 

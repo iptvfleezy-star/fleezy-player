@@ -9,9 +9,8 @@ plugins {
 
 // Single source of truth for the app version: the top-level VERSION file
 // (repo root). versionName is read verbatim ("x.y.z") and versionCode is
-// DERIVED deterministically as major*10000 + minor*100 + patch. This matches
-// the packed-int scheme UpdateChecker.kt uses to compare GitHub release tags,
-// so the in-app updater and the build stay in lockstep with one edit.
+// DERIVED deterministically as major*10000 + minor*100 + patch so versionCode
+// stays monotonic while VERSION remains the single source of truth.
 // 1.0.29 → versionName "1.0.29", versionCode 10029 (> the legacy code 39, so
 // installs over existing builds stay monotonic).
 val versionFile = rootProject.file("../VERSION")
@@ -37,17 +36,10 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
-    // Release signing — reads FLEEZY_KEYSTORE / FLEEZY_KEYSTORE_PASSWORD /
-    // FLEEZY_KEY_ALIAS / FLEEZY_KEY_PASSWORD env vars (with FLEEZY_LINEAGE for the
-    // rotation lineage). Falls back to the debug keystore when env vars are
-    // missing so a fresh checkout still produces an installable APK in CI / dev.
-    // See SECURITY.md for the rotation procedure.
-    //
-    // AGP doesn't expose signingLineage in the DSL, so we hand-roll a
-    // post-build task `signRelease` that re-signs the produced APK with
-    // apksigner --lineage. The end result is an APK that carries the
-    // proof-of-rotation signing block, allowing it to install over the
-    // existing debug-key install without "INSTALL_FAILED_UPDATE_INCOMPATIBLE".
+    // Production signing uses the permanent Fleezy release keystore.
+    // Debug builds use Android's debug key and a different applicationId
+    // (stream.fleezy.player.debug), so there is no key-rotation relationship
+    // between alpha installs and the eventual customer release.
     signingConfigs {
         create("release") {
             val ksPath = System.getenv("FLEEZY_KEYSTORE")
@@ -56,13 +48,8 @@ android {
                 storePassword = System.getenv("FLEEZY_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("FLEEZY_KEY_ALIAS")
                 keyPassword = System.getenv("FLEEZY_KEY_PASSWORD")
-                // Rotation lineage is only natively supported by APK Signature
-                // Scheme v3 (Android 9 / API 28+). Pre-9 devices would need
-                // the OLD signer for v1/v2 — which we don't ship — so we
-                // bumped minSdk to 28 and disable v1/v2. Modern Android TV
-                // boxes are all on 9+.
                 enableV1Signing = false
-                enableV2Signing = false
+                enableV2Signing = true
                 enableV3Signing = true
                 enableV4Signing = true
             }
@@ -79,14 +66,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // AGP always signs the release output with the debug keystore.
-            // The `resignRelease` Gradle task (further down) then re-signs
-            // the produced APK with the proper upload key and embeds the
-            // rotation lineage via apksigner. This roundabout works because
-            // apksigner can't re-sign an APK that already has v3 signatures
-            // from the new key with an added lineage — it needs the old
-            // (debug) key as the starting point.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -192,57 +172,4 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.robolectric:robolectric:4.13")
     testImplementation("org.json:json:20240303")
-}
-
-/**
- * Post-process release APK with apksigner --lineage so it installs in place
- * over the existing debug-signed release. Only runs when the env vars are
- * set; otherwise it's a no-op (CI / dev keep using the debug fallback).
- */
-val resignRelease by tasks.registering {
-    dependsOn("assembleRelease")
-    // The doLast block holds script-object references (file(), env lookups)
-    // that Gradle's configuration cache can't serialize — opt out explicitly.
-    notCompatibleWithConfigurationCache("hand-rolled apksigner exec")
-    doLast {
-        val ks = System.getenv("FLEEZY_KEYSTORE") ?: return@doLast
-        val ksPwd = System.getenv("FLEEZY_KEYSTORE_PASSWORD") ?: return@doLast
-        val alias = System.getenv("FLEEZY_KEY_ALIAS") ?: return@doLast
-        val keyPwd = System.getenv("FLEEZY_KEY_PASSWORD") ?: ksPwd
-        val lineage = System.getenv("FLEEZY_LINEAGE") ?: return@doLast
-
-        val apk = file("build/outputs/apk/release/app-release.apk")
-        if (!apk.exists()) {
-            println("[resignRelease] APK not found at $apk")
-            return@doLast
-        }
-        // Locate apksigner — prefer the build-tools that match compileSdk.
-        val sdkRoot = System.getenv("ANDROID_HOME")
-            ?: System.getenv("ANDROID_SDK_ROOT")
-            ?: "${System.getProperty("user.home")}/Library/Android/sdk"
-        val buildTools = file("$sdkRoot/build-tools").listFiles()
-            ?.sortedByDescending { it.name }
-            ?.firstOrNull { File(it, "apksigner").canExecute() }
-            ?: error("[resignRelease] apksigner not found under $sdkRoot/build-tools")
-        val apksigner = "${buildTools.absolutePath}/apksigner"
-
-        val proc = ProcessBuilder(
-            apksigner, "sign",
-            "--ks", ks,
-            "--ks-key-alias", alias,
-            "--ks-pass", "pass:$ksPwd",
-            "--key-pass", "pass:$keyPwd",
-            "--lineage", lineage,
-            "--rotation-min-sdk-version", "28",
-            "--min-sdk-version", "28",
-            "--v1-signing-enabled", "false",
-            "--v2-signing-enabled", "false",
-            "--v3-signing-enabled", "true",
-            "--v4-signing-enabled", "true",
-            apk.absolutePath,
-        ).inheritIO().start()
-        val code = proc.waitFor()
-        check(code == 0) { "[resignRelease] apksigner exited with $code" }
-        println("[resignRelease] APK re-signed with rotation lineage → $apk")
-    }
 }

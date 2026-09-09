@@ -118,7 +118,10 @@ class MainActivity : ComponentActivity() {
             // (Re-)apply the background sync schedule from the stored prefs
             // every time the app starts so a re-install / OS restart picks up
             // where we left off.
-            SyncScheduler.schedule(this@MainActivity, prefs.syncIntervalHours)
+            SyncScheduler.schedule(
+                this@MainActivity,
+                if (prefs.autoSyncOnLaunch) prefs.syncIntervalHours else 0,
+            )
 
             if (prefs.autoSyncOnLaunch) {
                 val intervalMs = prefs.syncIntervalHours * 3600L * 1000L

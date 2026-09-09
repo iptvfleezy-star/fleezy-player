@@ -198,12 +198,17 @@ class XtreamClient @Inject constructor(private val ok: OkHttpClient) {
     private suspend inline fun <T : Any> arrAt(
         p: ProviderEntity,
         action: String,
-        transform: (JsonObject) -> T?,
+        crossinline transform: (JsonObject) -> T?,
     ): List<T> {
         val body = get("${p.baseUrl}/player_api.php?username=${p.username.urlEnc()}&password=${p.password.urlEnc()}&action=$action")
-        val parsed = json.parseToJsonElement(body)
-        val arr = parsed as? JsonArray ?: return emptyList()
-        return arr.mapNotNull { (it as? JsonObject)?.let(transform) }
+        // Large provider catalogs can contain tens of thousands of entries.
+        // Parsing/mapping them on a ViewModel's Main coroutine freezes Fire TV
+        // navigation even though the HTTP request itself runs on IO.
+        return withContext(Dispatchers.Default) {
+            val parsed = json.parseToJsonElement(body)
+            val arr = parsed as? JsonArray ?: return@withContext emptyList()
+            arr.mapNotNull { (it as? JsonObject)?.let(transform) }
+        }
     }
 
     private fun JsonElement.str(): String? = (this as? JsonPrimitive)?.contentOrNull

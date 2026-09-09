@@ -248,7 +248,10 @@ fun HomeScreen(
                     poster = c.logo,
                     subtitle = "Live",
                     aspect = 16f / 9f,
-                ) { onPlay(c.streamUrl, c.name) }
+                ) {
+                    vm.playChannel(c)
+                    onPlay(c.streamUrl, c.name)
+                }
             }
         }
         Spacer(Modifier.height(40.dp))

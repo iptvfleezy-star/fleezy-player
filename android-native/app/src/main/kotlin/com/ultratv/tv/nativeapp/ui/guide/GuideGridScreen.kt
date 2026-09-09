@@ -75,6 +75,8 @@ class GuideGridViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val provider: ProviderRepository,
     private val epgDao: EpgDao,
+    private val playback: com.ultratv.tv.nativeapp.data.repo.PlaybackContext,
+    private val zapQueue: com.ultratv.tv.nativeapp.data.repo.LivePlaybackQueue,
 ) : ViewModel() {
 
     val channels: StateFlow<List<ChannelEntity>> = providerRepo.observeProviders()
@@ -90,6 +92,18 @@ class GuideGridViewModel @Inject constructor(
 
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    fun playChannel(channel: ChannelEntity) {
+        zapQueue.set(channels.value, channel)
+        playback.set(com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item(
+            providerId = channel.providerId,
+            kind = "LIVE",
+            remoteId = channel.remoteId,
+            title = channel.name,
+            poster = channel.logo,
+            streamUrl = channel.streamUrl,
+        ))
+    }
 
     /** Pull a fresh xmltv into the EPG table. */
     fun refreshXmltv() {
@@ -246,7 +260,10 @@ fun GuideGridScreen(
                         windowEndMs = windowEnd,
                         nowMs = now,
                         hScroll = hScroll,
-                        onPlay = { onPlayChannel(c) },
+                        onPlay = {
+                            vm.playChannel(c)
+                            onPlayChannel(c)
+                        },
                     )
                 }
             }

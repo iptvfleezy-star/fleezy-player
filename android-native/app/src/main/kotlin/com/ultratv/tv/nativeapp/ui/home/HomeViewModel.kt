@@ -71,6 +71,18 @@ class HomeViewModel @Inject constructor(
         ))
     }
 
+    /** Seeds playback state when a Live channel is opened from Home. */
+    fun playChannel(channel: ChannelEntity) {
+        playback.set(PlaybackContext.Item(
+            providerId = channel.providerId,
+            kind = "LIVE",
+            remoteId = channel.remoteId,
+            title = channel.name,
+            poster = channel.logo,
+            streamUrl = channel.streamUrl,
+        ))
+    }
+
     /** Removes an entry from history (used by "Dismiss" on Continue watching). */
     fun dismiss(h: WatchHistoryEntity) {
         viewModelScope.launch { history.remove(h.providerId, h.kind, h.remoteId) }

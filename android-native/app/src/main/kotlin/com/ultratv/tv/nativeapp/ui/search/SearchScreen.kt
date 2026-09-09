@@ -66,6 +66,7 @@ class SearchViewModel @Inject constructor(
     private val provider: ProviderRepository,
     private val catalog: CatalogRepository,
     private val history: com.ultratv.tv.nativeapp.data.prefs.SearchHistoryStore,
+    private val playback: com.ultratv.tv.nativeapp.data.repo.PlaybackContext,
 ) : ViewModel() {
     private val _q = MutableStateFlow("")
     val query: StateFlow<String> = _q.asStateFlow()
@@ -92,6 +93,17 @@ class SearchViewModel @Inject constructor(
     fun backspace() { setQuery(query.value.dropLast(1)) }
     fun clear() { setQuery("") }
     fun clearHistory() { viewModelScope.launch { history.clear() } }
+
+    fun playChannel(channel: ChannelEntity) {
+        playback.set(com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item(
+            providerId = channel.providerId,
+            kind = "LIVE",
+            remoteId = channel.remoteId,
+            title = channel.name,
+            poster = channel.logo,
+            streamUrl = channel.streamUrl,
+        ))
+    }
 }
 
 private val KB_ROWS = listOf(
@@ -327,7 +339,10 @@ fun SearchScreen(
             }
             if (showAll || activeFilter == 3) {
                 ResultSection("Live channels", r.channels, total) { c ->
-                    ChannelResultCard(c, onClick = { onOpenChannel(c.streamUrl, c.name) })
+                    ChannelResultCard(c, onClick = {
+                        vm.playChannel(c)
+                        onOpenChannel(c.streamUrl, c.name)
+                    })
                 }
             }
 

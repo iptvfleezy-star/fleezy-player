@@ -35,11 +35,6 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         vectorDrawables { useSupportLibrary = true }
-
-        // Telemetry transport config — see resolveBuildConfigValue() above.
-        // Consumed by RemoteLog. String values must be wrapped in escaped quotes.
-        buildConfigField("String", "LOG_URL", "\"$ultraLogUrl\"")
-        buildConfigField("String", "LOG_TOKEN", "\"$ultraLogToken\"")
     }
 
     // Release signing — reads FLEEZY_KEYSTORE / FLEEZY_KEYSTORE_PASSWORD /

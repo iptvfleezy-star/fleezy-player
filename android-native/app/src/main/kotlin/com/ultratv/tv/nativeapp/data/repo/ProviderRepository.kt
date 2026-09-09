@@ -320,8 +320,9 @@ class ProviderRepository @Inject constructor(
             if (!pinSet) cats else cats.map { it.copy(locked = adultRegex.containsMatchIn(it.name)) }
 
         try {
-            step("Checking account…", 5)
-            xtream.validateCredentials(p)
+            // Credentials were already validated by addXtream() immediately
+            // before this first-login sync. Avoid a duplicate back-to-back
+            // player_api.php auth request before loading Live TV.
             step("Live categories…", 20)
             val liveCats = xtream.fetchLiveCategories(p).let(::maybeLock)
             step("Live channels…", 45)

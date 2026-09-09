@@ -214,10 +214,23 @@ class XtreamClient @Inject constructor(private val ok: OkHttpClient) {
     private fun JsonElement.str(): String? = (this as? JsonPrimitive)?.contentOrNull
 
     private suspend fun get(url: String): String = withContext(Dispatchers.IO) {
-        ok.newCall(Request.Builder().url(url).build()).execute().use { resp ->
-            if (!resp.isSuccessful) error("Server returned HTTP ${resp.code}")
-            resp.body?.string().orEmpty()
+        repeat(3) { attempt ->
+            ok.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+                if (resp.isSuccessful) {
+                    return@withContext resp.body?.string().orEmpty()
+                }
+
+                // Strong8K can occasionally answer rapid Xtream API bursts with
+                // HTTP 513 even though the same account/endpoints are healthy.
+                // Retry only that transient status; fail immediately on all
+                // normal authentication/network errors.
+                if (resp.code != 513 || attempt == 2) {
+                    error("Server returned HTTP ${resp.code}")
+                }
+            }
+            kotlinx.coroutines.delay(500L * (attempt + 1))
         }
+        error("Server request failed")
     }
 
     private fun String.urlEnc(): String = java.net.URLEncoder.encode(this, "UTF-8")

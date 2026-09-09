@@ -76,9 +76,21 @@ class OnboardingViewModel @Inject constructor(
                 )
                 providerId = id
                 provider.setDefault(id)
-                provider.syncAll(id) { step -> _message.value = step }
+
+                // First launch is Live-first: do not make a Fire Stick wait for
+                // a huge VOD/Series catalog before the customer can watch TV.
+                val liveCount = provider.syncXtreamLiveOnly(id) { step -> _message.value = step }
                 prefs.markOnboardingSeen()
-                _message.value = "Ready"
+                _message.value = "Ready — $liveCount live channels"
+                _syncing.value = false
+
+                // Finish Movies + Series after the onboarding overlay disappears.
+                // Failure here leaves the validated account + Live catalog intact.
+                viewModelScope.launch {
+                    runCatching {
+                        provider.syncXtreamLibraryOnly(id)
+                    }
+                }
             } catch (t: Throwable) {
                 providerId?.let { id ->
                     runCatching { provider.delete(id) }

@@ -302,6 +302,88 @@ class ProviderRepository @Inject constructor(
     }
 
     /**
+     * Fast first-login sync for Fleezy Xtream accounts. Loads only Live TV so
+     * the customer can enter the app quickly; Movies/Series can continue after
+     * the onboarding overlay is gone.
+     */
+    suspend fun syncXtreamLiveOnly(providerId: Long, onProgress: (String) -> Unit = {}): Int {
+        val p = providerDao.byId(providerId) ?: return 0
+        if (p.kind != "XTREAM") return 0
+
+        fun step(label: String, pct: Int? = null) {
+            onProgress(label)
+            syncStatus.set(SyncStatusBus.Status(provider = p.name, step = label, percent = pct))
+        }
+
+        val pinSet = parental.isSet()
+        fun maybeLock(cats: List<CategoryEntity>): List<CategoryEntity> =
+            if (!pinSet) cats else cats.map { it.copy(locked = adultRegex.containsMatchIn(it.name)) }
+
+        try {
+            step("Checking account…", 5)
+            xtream.validateCredentials(p)
+            step("Live categories…", 20)
+            val liveCats = xtream.fetchLiveCategories(p).let(::maybeLock)
+            step("Live channels…", 45)
+            val chans = xtream.fetchLiveStreams(p)
+
+            categoryDao.deleteForProviderKind(p.id, "LIVE")
+            categoryDao.upsertAll(liveCats)
+            channelDao.deleteForProvider(p.id)
+            step("Saving ${chans.size} live channels…", 75)
+            insertChunked(chans) { channelDao.upsertAll(it) }
+
+            step("Live TV ready — ${chans.size} channels", 100)
+            return chans.size
+        } finally {
+            syncStatus.clear()
+        }
+    }
+
+    /**
+     * Completes the heavy Xtream catalog after Live TV is usable.
+     * A failure here must not invalidate an otherwise working Fleezy login.
+     */
+    suspend fun syncXtreamLibraryOnly(providerId: Long, onProgress: (String) -> Unit = {}): Int {
+        val p = providerDao.byId(providerId) ?: return 0
+        if (p.kind != "XTREAM") return 0
+
+        fun step(label: String, pct: Int? = null) {
+            onProgress(label)
+            syncStatus.set(SyncStatusBus.Status(provider = p.name, step = label, percent = pct))
+        }
+
+        val pinSet = parental.isSet()
+        fun maybeLock(cats: List<CategoryEntity>): List<CategoryEntity> =
+            if (!pinSet) cats else cats.map { it.copy(locked = adultRegex.containsMatchIn(it.name)) }
+
+        try {
+            step("Loading Movies…", 10)
+            val movCats = xtream.fetchVodCategories(p).let(::maybeLock)
+            val movs = xtream.fetchVodStreams(p)
+            categoryDao.deleteForProviderKind(p.id, "MOVIE")
+            categoryDao.upsertAll(movCats)
+            movieDao.deleteForProvider(p.id)
+            step("Saving ${movs.size} movies…", 45)
+            insertChunked(movs) { movieDao.upsertAll(it) }
+
+            step("Loading Series…", 60)
+            val serCats = xtream.fetchSeriesCategories(p).let(::maybeLock)
+            val series = xtream.fetchSeries(p)
+            categoryDao.deleteForProviderKind(p.id, "SERIES")
+            categoryDao.upsertAll(serCats)
+            seriesDao.deleteForProvider(p.id)
+            step("Saving ${series.size} series…", 90)
+            insertChunked(series) { seriesDao.upsertAll(it) }
+
+            step("Library ready — ${movs.size} movies · ${series.size} series", 100)
+            return movs.size + series.size
+        } finally {
+            syncStatus.clear()
+        }
+    }
+
+    /**
      * Pulls Live + VOD + Series catalogs. Returns total item count.
      * Note: episodes are loaded on-demand when the user opens a series.
      */

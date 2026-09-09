@@ -216,7 +216,6 @@ class PlayerViewModel @Inject constructor(
 fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    BackHandler { onBack() }
     val playbackItem by vm.current.collectAsState()
     val isLive = playbackItem?.kind == "LIVE"
     var currentUrl by remember { mutableStateOf(url) }
@@ -224,10 +223,22 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     var tracksOpen by remember { mutableStateOf(false) }
     var drawerOpen by remember { mutableStateOf(false) }
     var displayMenu by remember { mutableStateOf(false) }
-    var aspectMode by remember { mutableStateOf(AspectMode.Fit) }
+    var aspectMode by remember { mutableStateOf(AspectMode.Zoom) }
     var playbackSpeed by remember { mutableStateOf(1.0f) }
     var playbackError by remember { mutableStateOf<String?>(null) }
+    var chromeVisible by remember { mutableStateOf(false) }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
+
+    BackHandler {
+        when {
+            tracksOpen -> tracksOpen = false
+            displayMenu -> displayMenu = false
+            statsOpen -> statsOpen = false
+            drawerOpen -> drawerOpen = false
+            chromeVisible -> chromeVisible = false
+            else -> onBack()
+        }
+    }
 
     // Load prefs off the main thread. runBlocking here blocked the main thread
     // on a DataStore read during composition (ANR risk). produceState starts
@@ -317,6 +328,12 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             .setMediaSourceFactory(mediaSourceFactory)
             .build().apply {
             playWhenReady = true
+            // When an adaptive source exposes multiple video renditions, prefer
+            // the highest supported bitrate instead of settling on a soft/low
+            // rendition. Single-rendition MPEG-TS streams are unaffected.
+            trackSelectionParameters = trackSelectionParameters.buildUpon()
+                .setForceHighestSupportedBitrate(true)
+                .build()
             // Surface playback failures to the dashboard so we can see WHY a
             // stream silently never starts (codec, 403, DNS, etc).
             addListener(object : androidx.media3.common.Player.Listener {
@@ -374,11 +391,18 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     // Stream-stats overlay: tracks codec/resolution/bitrate while playing.
     var statsOpen by remember { mutableStateOf(false) }
     var stats by remember { mutableStateOf(StreamStats()) }
-    LaunchedEffect(statsOpen) {
-        if (!statsOpen) return@LaunchedEffect
+    LaunchedEffect(statsOpen, isLive, chromeVisible) {
+        if (!statsOpen && !(isLive && chromeVisible)) return@LaunchedEffect
         while (true) {
             stats = StreamStats.read(player)
             delay(1_000)
+        }
+    }
+
+    LaunchedEffect(chromeVisible, displayMenu, statsOpen, tracksOpen, drawerOpen) {
+        if (chromeVisible && !displayMenu && !statsOpen && !tracksOpen && !drawerOpen) {
+            delay(4_000)
+            chromeVisible = false
         }
     }
 
@@ -430,8 +454,10 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         }
     }
 
-    // D-pad UP/DOWN = channel zap on Live. The PlayerView eats LEFT/RIGHT for
-    // seek when useController = true, which is what we want for VOD.
+    // Fire TV Live controls:
+    // UP/DOWN = zap, LEFT = channel drawer, OK = temporary info overlay.
+    // The built-in Media3 controller is disabled for Live because its touch-first
+    // buttons do not map cleanly to Fire TV D-pad navigation.
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
     Box(
@@ -442,12 +468,14 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             .focusable()
             .onKeyEvent { ev ->
                 if (!isLive || ev.type != KeyEventType.KeyDown) return@onKeyEvent false
+                if (drawerOpen || tracksOpen || displayMenu || statsOpen) return@onKeyEvent false
                 when (ev.key) {
                     Key.DirectionUp -> {
                         scope.launch {
                             vm.zap(forward = false)?.let {
                                 currentUrl = it
                                 currentTitle = vm.current.value?.title ?: currentTitle
+                                chromeVisible = true
                             }
                         }
                         true
@@ -457,12 +485,22 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                             vm.zap(forward = true)?.let {
                                 currentUrl = it
                                 currentTitle = vm.current.value?.title ?: currentTitle
+                                chromeVisible = true
                             }
                         }
                         true
                     }
+                    Key.DirectionLeft -> {
+                        drawerOpen = true
+                        chromeVisible = false
+                        true
+                    }
                     Key.Enter, Key.DirectionCenter -> {
-                        drawerOpen = !drawerOpen
+                        chromeVisible = !chromeVisible
+                        true
+                    }
+                    Key.DirectionRight -> {
+                        chromeVisible = true
                         true
                     }
                     else -> false
@@ -481,19 +519,22 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                     false,
                 ) as PlayerView).apply {
                     this.player = player
-                    useController = true
+                    useController = !isLive
                     setShowFastForwardButton(!isLive)
                     setShowRewindButton(!isLive)
                     setShowNextButton(false)
                     setShowPreviousButton(false)
-                    controllerShowTimeoutMs = if (isLive) 1500 else 3000
+                    controllerShowTimeoutMs = if (isLive) 0 else 3000
                     layoutParams = ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT,
                     )
                 }
             },
-            update = { v -> v.resizeMode = aspectMode.resizeMode },
+            update = { v ->
+                v.resizeMode = aspectMode.resizeMode
+                v.useController = !isLive
+            },
             modifier = Modifier.fillMaxSize(),
         )
 
@@ -569,14 +610,27 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             }
         }
 
-        Row(Modifier.align(Alignment.TopStart).padding(24.dp)) {
-            Column {
-                Text(currentTitle, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                if (isLive) {
-                    Text(
-                        "▲ ▼ to zap channels",
-                        color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp,
-                    )
+        if (!isLive || chromeVisible) {
+            Row(Modifier.align(Alignment.TopStart).padding(24.dp)) {
+                Column {
+                    Text(currentTitle, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    if (isLive) {
+                        val quality = listOf(stats.resolution, stats.videoBitrate)
+                            .filter { it != "—" }
+                            .joinToString(" · ")
+                        if (quality.isNotBlank()) {
+                            Text(
+                                quality,
+                                color = Color.White.copy(alpha = 0.72f),
+                                fontSize = 12.sp,
+                            )
+                        }
+                        Text(
+                            "OK info · LEFT channels · ▲ ▼ change channel · BACK exit",
+                            color = Color.White.copy(alpha = 0.55f),
+                            fontSize = 11.sp,
+                        )
+                    }
                 }
             }
         }
@@ -613,7 +667,8 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             }
         }
 
-        FlowRow(
+        if (!isLive) {
+            FlowRow(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .widthIn(max = 760.dp)
@@ -668,6 +723,7 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                     context.startActivity(Intent.createChooser(intent, S.recordingsOpenWith))
                 }
             }) { Text(S.playerExternal) }
+            }
         }
         if (displayMenu) {
             Column(

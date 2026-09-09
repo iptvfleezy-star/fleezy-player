@@ -9,9 +9,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <!-- Auto-update: download + install newer APK from GitHub Releases. -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Reminders: AlarmManager.setExactAndAllowWhileIdle + notification. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
@@ -34,11 +31,6 @@
         android:theme="@style/Theme.UltraTv"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- Google Cast SDK: points at our OptionsProvider for the receiver id. -->
-        <meta-data
-            android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
-            android:value="com.ultratv.tv.nativeapp.cast.UltraTvCastOptionsProvider" />
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -54,19 +46,6 @@
             </intent-filter>
         </activity>
 
-        <!-- FileProvider for the auto-update flow: exposes our internal
-             filesDir/updates/*.apk as a content:// URI so the system installer
-             can read it across the package boundary. -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.updates"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/update_provider_paths" />
-        </provider>
-
         <!-- Disable WorkManager's default startup so our HiltAndroidApp can
              provide a Hilt-aware WorkerFactory via Configuration.Provider. -->
         <provider
@@ -79,16 +58,6 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
-
-        <receiver
-            android:name=".BootReceiver"
-            android:exported="true"
-            android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-            </intent-filter>
-        </receiver>
 
         <receiver
             android:name="com.ultratv.tv.nativeapp.data.reminders.ReminderReceiver"

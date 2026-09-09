@@ -3,8 +3,11 @@ package com.ultratv.tv.nativeapp.data.xmltv
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 import java.io.ByteArrayInputStream
 
+@RunWith(RobolectricTestRunner::class)
 class XmltvParserTest {
 
     private val parser = XmltvParser(OkHttpClient())

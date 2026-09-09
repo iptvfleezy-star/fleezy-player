@@ -195,11 +195,16 @@ class XtreamClient @Inject constructor(private val ok: OkHttpClient) {
 
     // ---- Helpers ----
 
-    private suspend inline fun <T : Any> arrAt(p: ProviderEntity, action: String, transform: (JsonObject) -> T?): List<T> = runCatching {
+    private suspend inline fun <T : Any> arrAt(
+        p: ProviderEntity,
+        action: String,
+        transform: (JsonObject) -> T?,
+    ): List<T> {
         val body = get("${p.baseUrl}/player_api.php?username=${p.username.urlEnc()}&password=${p.password.urlEnc()}&action=$action")
-        val arr = json.parseToJsonElement(body) as? JsonArray ?: return@runCatching emptyList<T>()
-        arr.mapNotNull { (it as? JsonObject)?.let(transform) }
-    }.getOrDefault(emptyList())
+        val parsed = json.parseToJsonElement(body)
+        val arr = parsed as? JsonArray ?: return emptyList()
+        return arr.mapNotNull { (it as? JsonObject)?.let(transform) }
+    }
 
     private fun JsonElement.str(): String? = (this as? JsonPrimitive)?.contentOrNull
 

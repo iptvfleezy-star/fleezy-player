@@ -22,7 +22,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,8 +35,6 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 private enum class OpenDialog { NONE, XTREAM }
 
@@ -52,63 +49,8 @@ fun SettingsScreen(
     val syncing by vm.syncing.collectAsState()
 
     val ctx = LocalContext.current
-    val scope = rememberCoroutineScope()
     var openDialog by remember { mutableStateOf(OpenDialog.NONE) }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
-    val savedMsg = S.toastBackupSaved
-    val saveFailedMsg = S.toastSaveFailed
-    val emptyFileMsg = S.toastEmptyFile
-    val backupReadyMsg = S.toastBackupReady
-    val restoredTemplate = S.toastRestoredTemplate
-    val restoreFailedPrefix = S.toastRestoreFailed
-
-    // SAF picker for local M3U files. Kept here at the top so the contract is
-    // remembered across recompositions; the trigger is a Button further down.
-    // Backup export: SAF CreateDocument with a JSON mime hint. The VM has
-    // already serialised the bundle to text via prepareBackup() before we
-    // get here, so we just stream it to the picked URI.
-    // Backup encryption password — shared between export and restore so the
-    // user can also use it as the decryption hint when re-importing.
-    var backupPwd by remember { mutableStateOf("") }
-
-    val saveBackup = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json"),
-        onResult = { uri ->
-            val text = vm.consumeBackup()
-            if (uri == null || text == null) return@rememberLauncherForActivityResult
-            scope.launch(Dispatchers.IO) {
-                runCatching {
-                    ctx.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) }
-                }.onSuccess {
-                    com.ultratv.tv.nativeapp.ui.common.Toaster.ok(savedMsg)
-                }.onFailure {
-                    com.ultratv.tv.nativeapp.ui.common.Toaster.err(saveFailedMsg + (it.message ?: ""))
-                }
-            }
-        },
-    )
-    val loadBackup = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument(),
-        onResult = { uri ->
-            if (uri == null) return@rememberLauncherForActivityResult
-            scope.launch(Dispatchers.IO) {
-                val txt = runCatching {
-                    ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        ?.toString(Charsets.UTF_8).orEmpty()
-                }.getOrNull()
-                if (txt.isNullOrBlank()) {
-                    com.ultratv.tv.nativeapp.ui.common.Toaster.err(emptyFileMsg)
-                } else {
-                    vm.restoreBackup(
-                        text = txt,
-                        restoredTemplate = restoredTemplate,
-                        failedPrefix = restoreFailedPrefix,
-                        password = backupPwd.takeIf { it.isNotEmpty() },
-                    )
-                }
-            }
-        },
-    )
 
     // SAF tree picker for local channel logos. Takes a persistable read perm
     // so subsequent app launches can still read from the folder.
@@ -210,37 +152,6 @@ fun SettingsScreen(
             PreferencesSection()
         }
 
-        // ---- 4b. Backup / restore ----
-        SectionCard {
-            Text(S.settingsBackupTitle, color = MaterialTheme.colorScheme.onBackground, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(
-                S.settingsBackupHint,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp,
-            )
-            Text(
-                S.backupEncryptHint,
-                color = T.Fg3,
-                fontSize = 12.sp,
-            )
-            com.ultratv.tv.nativeapp.ui.settings.FormField(
-                label = S.backupEncryptFieldLabel,
-                value = backupPwd,
-                onChange = { backupPwd = it },
-                password = true,
-                placeholder = S.backupEncryptFieldPlaceholder,
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = {
-                    vm.prepareBackup(backupReadyMsg, password = backupPwd.takeIf { it.isNotEmpty() })
-                    val suffix = if (backupPwd.isNotEmpty()) "encrypted" else "plain"
-                    saveBackup.launch("fleezy-player-backup-${System.currentTimeMillis()}-$suffix.json")
-                }) { Text(S.settingsBackupExport) }
-                Button(onClick = {
-                    loadBackup.launch(arrayOf("application/json", "*/*"))
-                }) { Text(S.settingsBackupImport) }
-            }
-        }
-
         // ---- 4c. Local channel logos ----
         SectionCard {
             Text("Local channel logos", color = MaterialTheme.colorScheme.onBackground, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -277,6 +188,26 @@ fun SettingsScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp,
             )
         }
+        // ---- 6. About / upstream attribution ----
+        SectionCard {
+            Text(
+                "About Fleezy Player",
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                "Version " + com.ultratv.tv.nativeapp.BuildConfig.VERSION_NAME,
+                color = T.Fg3,
+                fontSize = 12.sp,
+            )
+            Text(
+                "Based on the MIT-licensed Ultra TV project. Original work by khalilbenaz; upstream attribution retained as requested by the project.",
+                color = T.Fg3,
+                fontSize = 12.sp,
+            )
+        }
+
         Spacer(Modifier.height(12.dp))
     }
 

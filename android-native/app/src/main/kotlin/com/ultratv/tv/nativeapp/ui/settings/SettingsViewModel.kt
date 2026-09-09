@@ -24,7 +24,6 @@ data class SettingsState(
 class SettingsViewModel @Inject constructor(
     private val repo: ProviderRepository,
     private val prefs: com.ultratv.tv.nativeapp.data.prefs.UserPreferencesStore,
-    private val backupRepo: com.ultratv.tv.nativeapp.data.repo.BackupRepository,
 ) : ViewModel() {
 
     val localLogosFolderUri: StateFlow<String> = prefs.flow
@@ -33,43 +32,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setLocalLogosFolderUri(uri: String) =
         viewModelScope.launch { prefs.setLocalLogosFolderUri(uri) }
-
-    private val _backupText = MutableStateFlow<String?>(null)
-    val backupText: StateFlow<String?> = _backupText.asStateFlow()
-
-    fun prepareBackup(
-        readyMsg: String = "Backup ready — pick a file to save it.",
-        password: String? = null,
-    ) {
-        viewModelScope.launch {
-            _backupText.value = backupRepo.export(password)
-            com.ultratv.tv.nativeapp.ui.common.Toaster.ok(readyMsg)
-        }
-    }
-
-    fun consumeBackup(): String? {
-        val t = _backupText.value
-        _backupText.value = null
-        return t
-    }
-
-    fun restoreBackup(
-        text: String,
-        restoredTemplate: String = "Restored %1\$d provider(s), %2\$d fav, %3\$d watch entries",
-        failedPrefix: String = "Restore failed: ",
-        password: String? = null,
-    ) {
-        viewModelScope.launch {
-            try {
-                val r = backupRepo.import(text, password)
-                com.ultratv.tv.nativeapp.ui.common.Toaster.ok(
-                    restoredTemplate.format(r.providers, r.favorites, r.historyEntries)
-                )
-            } catch (t: Throwable) {
-                com.ultratv.tv.nativeapp.ui.common.Toaster.err(failedPrefix + (t.message ?: ""))
-            }
-        }
-    }
 
     private val _message = MutableStateFlow<String?>(null)
     private val _syncing = MutableStateFlow(false)

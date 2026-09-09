@@ -163,7 +163,7 @@ fun UtilityCluster(
             UltraIcon(UltraIcon.Search, size = 16.dp, color = if (searchActive) UltraTokens.Fg else UltraTokens.Fg2)
             Spacer(Modifier.width(10.dp))
             Text(
-                "Films, séries, chaînes…",
+                "Movies, series, channels…",
                 color = UltraTokens.Fg4,
                 fontSize = 13.sp,
                 modifier = Modifier.weight(1f),
@@ -183,13 +183,6 @@ fun UtilityCluster(
         Box(Modifier.size(width = 1.dp, height = 18.dp).background(UltraTokens.Line))
         Spacer(Modifier.width(14.dp))
 
-        // Weather (stub)
-        Text("☀ 18°", color = UltraTokens.Fg3, fontSize = 13.sp)
-        Spacer(Modifier.width(14.dp))
-        Text("≡ 1.4 Gbps", color = UltraTokens.Fg3, fontSize = 13.sp)
-        Spacer(Modifier.width(14.dp))
-        Box(Modifier.size(width = 1.dp, height = 18.dp).background(UltraTokens.Line))
-        Spacer(Modifier.width(14.dp))
         Clock()
     }
 }

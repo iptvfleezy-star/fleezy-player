@@ -63,7 +63,7 @@ fun SeriesScreen(onOpen: (Long) -> Unit, vm: SeriesListViewModel = hiltViewModel
                 image = featured!!.poster,
                 primaryLabel = S.open,
                 onPrimary = { onOpen(featured!!.id) },
-                secondaryLabel = "Plus d'infos",
+                secondaryLabel = "Details",
                 onSecondary = { onOpen(featured!!.id) },
             )
         } else {
@@ -93,7 +93,7 @@ fun SeriesScreen(onOpen: (Long) -> Unit, vm: SeriesListViewModel = hiltViewModel
             rails.forEachIndexed { idx, rail ->
                 ContentRail(
                     title = rail.category?.name ?: S.railOther,
-                    eyebrow = if (idx == 0) "Séries" else null,
+                    eyebrow = if (idx == 0) "Series" else null,
                     items = rail.items,
                     itemKey = { it.id },
                 ) { s ->

@@ -101,7 +101,7 @@ private val KB_ROWS = listOf(
     "0123456789".toList(),
 )
 
-private val FILTERS = listOf("Tous", "Films", "Séries", "Chaînes", "Sport", "Documentaire", "Reprendre")
+private val FILTERS = listOf("All", "Movies", "Series", "Channels", "Sports", "Documentary", "Resume")
 
 @OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
 @Composable
@@ -321,19 +321,19 @@ fun SearchScreen(
                 }
             }
             if (showAll || activeFilter == 2) {
-                ResultSection("Séries", r.series, total) { s ->
+                ResultSection("Series", r.series, total) { s ->
                     SquareResultCard(s.name, s.year?.toString(), onClick = { onOpenSeries(s.id) })
                 }
             }
             if (showAll || activeFilter == 3) {
-                ResultSection("Chaînes en direct", r.channels, total) { c ->
+                ResultSection("Live channels", r.channels, total) { c ->
                     ChannelResultCard(c, onClick = { onOpenChannel(c.streamUrl, c.name) })
                 }
             }
 
             if (q.isNotBlank() && total == 0) {
                 Text(
-                    "Aucun résultat",
+                    "No results",
                     color = UltraTokens.Fg3,
                     fontSize = 14.sp,
                 )
@@ -464,7 +464,7 @@ private fun ChannelResultCard(c: ChannelEntity, onClick: () -> Unit) {
         Column {
             Text(c.name, color = UltraTokens.Fg, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             Text(
-                "Chaîne",
+                "Channel",
                 color = UltraTokens.Fg3,
                 fontSize = 11.sp,
             )

@@ -68,7 +68,7 @@ fun MoviesScreen(onOpen: (Long) -> Unit, vm: MoviesViewModel = hiltViewModel()) 
                 image = featured!!.poster,
                 primaryLabel = S.open,
                 onPrimary = { onOpen(featured!!.id) },
-                secondaryLabel = "Plus d'infos",
+                secondaryLabel = "Details",
                 onSecondary = { onOpen(featured!!.id) },
             )
         } else {
@@ -98,7 +98,7 @@ fun MoviesScreen(onOpen: (Long) -> Unit, vm: MoviesViewModel = hiltViewModel()) 
             rails.forEachIndexed { idx, rail ->
                 ContentRail(
                     title = rail.category?.name ?: S.railOther,
-                    eyebrow = if (idx == 0) "Cinéma" else null,
+                    eyebrow = if (idx == 0) "Movies" else null,
                     items = rail.items,
                     itemKey = { it.id },
                 ) { m -> PosterCard(title = m.name, poster = m.poster, subtitle = m.year?.toString()) { onOpen(m.id) } }

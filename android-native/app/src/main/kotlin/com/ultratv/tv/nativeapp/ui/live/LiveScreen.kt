@@ -152,7 +152,7 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    "${chans.size} chaînes",
+                    "${chans.size} channels",
                     fontFamily = UltraFonts.Mono,
                     fontSize = 11.sp,
                     color = UltraTokens.Fg4,
@@ -369,7 +369,7 @@ private fun LivePreviewPane(
     onWatch: () -> Unit,
     onPlayCatchup: (url: String, title: String) -> Unit = { _, _ -> },
 ) {
-    val nowTitle = nowProgramme?.title ?: "Programme en cours"
+    val nowTitle = nowProgramme?.title ?: "Now playing"
     val nextTitle = nextProgramme?.title ?: "À venir"
     val hue = channel.name.hashCode()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -526,9 +526,9 @@ private fun LivePreviewPane(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             maxItemsInEachRow = 4,
         ) {
-            Hint("OK", "Lecture")
+            Hint("OK", "Play")
             Hint("▲▼", "Zap")
-            Hint("★", "Fav.")
+            Hint("★", "Favorite")
         }
     }
 }
@@ -676,7 +676,7 @@ private fun ScheduleRow(
                         Text("▶", color = UltraTokens.Accent, fontSize = 11.sp)
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            "REPRISE",
+                            "REPLAY",
                             color = UltraTokens.Accent,
                             fontSize = 9.sp,
                             letterSpacing = 0.6.sp,
@@ -717,7 +717,7 @@ private fun ScheduleRow(
                         Text("⏰", fontSize = 11.sp)
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            "RAPPEL",
+                            "REMIND",
                             color = UltraTokens.Fg3,
                             fontSize = 9.sp,
                             letterSpacing = 0.6.sp,
@@ -768,7 +768,7 @@ private fun TonightSchedule(
                 }
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    now?.title ?: "Programme en cours",
+                    now?.title ?: "Now playing",
                     color = UltraTokens.Fg,
                     fontFamily = UltraFonts.Serif,
                     fontSize = 26.sp,
@@ -864,7 +864,7 @@ private fun LiveChip() {
                 .background(UltraTokens.Live)
         )
         Spacer(Modifier.width(8.dp))
-        Text("EN DIRECT", color = Color(0xFFFFB5AF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.7.sp)
+        Text("LIVE", color = Color(0xFFFFB5AF), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.7.sp)
     }
 }
 

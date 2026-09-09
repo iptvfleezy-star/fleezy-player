@@ -106,8 +106,8 @@ fun SidebarNav(navController: NavController) {
             if (expanded) {
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text("ULTRA", color = UltraTokens.Fg, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text("TV", color = UltraTokens.Fg3, fontSize = 10.sp, letterSpacing = 3.sp)
+                    Text("FLEEZY", color = UltraTokens.Fg, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text("PLAYER", color = UltraTokens.Fg3, fontSize = 10.sp, letterSpacing = 2.sp)
                 }
             }
         }
@@ -143,12 +143,12 @@ fun SidebarNav(navController: NavController) {
                 Modifier.size(32.dp).clip(RoundedCornerShape(8.dp))
                     .background(Brush.linearGradient(listOf(Color(0xFF3057B7), Color(0xFF6839B5)))),
                 contentAlignment = Alignment.Center,
-            ) { Text("K", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+            ) { Text("F", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
             if (expanded) {
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text("Khalil", color = UltraTokens.Fg2, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                    Text("Salon · UHD", color = UltraTokens.Fg3, fontSize = 11.sp)
+                    Text("Fleezy", color = UltraTokens.Fg2, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Text("Player", color = UltraTokens.Fg3, fontSize = 11.sp)
                 }
             }
         }

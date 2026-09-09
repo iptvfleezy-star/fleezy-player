@@ -32,6 +32,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Install stable Fleezy debug signing key
+        run: |
+          mkdir -p "$HOME/.android"
+          base64 -d ci/fleezy-debug.keystore.b64 > "$HOME/.android/debug.keystore"
+
       - name: Compile Fleezy
         run: |
           chmod +x gradlew

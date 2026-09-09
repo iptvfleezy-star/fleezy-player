@@ -68,14 +68,15 @@ class OnboardingViewModel @Inject constructor(
             _message.value = "Signing in…"
             var providerId: Long? = null
             try {
-                providerId = provider.addXtream(
+                val id = provider.addXtream(
                     FleezyConfig.PROVIDER_NAME,
                     FleezyConfig.XTREAM_BASE_URL,
                     username.trim(),
                     password,
                 )
-                provider.setDefault(providerId)
-                provider.syncAll(providerId) { step -> _message.value = step }
+                providerId = id
+                provider.setDefault(id)
+                provider.syncAll(id) { step -> _message.value = step }
                 prefs.markOnboardingSeen()
                 _message.value = "Ready"
             } catch (t: Throwable) {

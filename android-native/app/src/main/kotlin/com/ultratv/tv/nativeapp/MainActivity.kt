@@ -309,6 +309,7 @@ private fun NavGraph(nav: androidx.navigation.NavHostController) {
         }
         composable(Routes.FAVORITES) {
             FavoritesScreen(
+                onPlayChannel = { url, title -> nav.navigate(Routes.player(url, title)) },
                 onOpenMovie = { id -> nav.navigate(Routes.movieDetail(id)) },
                 onOpenSeries = { id -> nav.navigate(Routes.seriesDetail(id)) },
             )

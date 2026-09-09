@@ -502,6 +502,16 @@ private fun LivePreviewPane(
             }
         }
 
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+        ) {
+            com.ultratv.tv.nativeapp.ui.common.FavoriteButton(
+                kind = "LIVE",
+                remoteId = channel.remoteId,
+            )
+        }
+
         // TiviMate-style full-day schedule of the focused channel.
         var schedule by remember(channel.id) { mutableStateOf<List<com.ultratv.tv.nativeapp.data.db.EpgEntity>>(emptyList()) }
         LaunchedEffect(channel.id) {

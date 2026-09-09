@@ -1,5 +1,7 @@
 package com.ultratv.tv.nativeapp.ui.onboarding
 
+import android.content.Context
+import android.view.inputmethod.InputMethodManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -13,10 +15,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -110,6 +115,16 @@ fun OnboardingWizard(
     vm: OnboardingViewModel = hiltViewModel(),
 ) {
     val show by vm.show.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val view = LocalView.current
+
+    LaunchedEffect(show) {
+        if (!show) {
+            focusManager.clearFocus(force = true)
+            val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(view.windowToken, 0)
+        }
+    }
     if (!show) return
 
     val syncing by vm.syncing.collectAsState()

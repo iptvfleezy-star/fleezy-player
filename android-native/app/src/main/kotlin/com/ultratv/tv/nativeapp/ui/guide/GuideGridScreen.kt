@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ultratv.tv.nativeapp.data.db.CategoryEntity
 import com.ultratv.tv.nativeapp.data.db.ChannelEntity
 import com.ultratv.tv.nativeapp.data.db.EpgDao
 import com.ultratv.tv.nativeapp.data.db.EpgEntity
@@ -45,8 +47,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import androidx.tv.material3.Button
@@ -79,13 +83,47 @@ class GuideGridViewModel @Inject constructor(
     private val zapQueue: com.ultratv.tv.nativeapp.data.repo.LivePlaybackQueue,
 ) : ViewModel() {
 
-    val channels: StateFlow<List<ChannelEntity>> = providerRepo.observeProviders()
-        .flatMapLatest { ps ->
-            val pid = (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id
-                ?: return@flatMapLatest flowOf(emptyList())
-            catalog.channels(pid)
+    private val activeProviderId: StateFlow<Long?> = providerRepo.observeProviders()
+        .map { ps -> (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private val allChannels: StateFlow<List<ChannelEntity>> = activeProviderId
+        .flatMapLatest { pid ->
+            if (pid == null) flowOf(emptyList()) else catalog.channels(pid)
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val categories: StateFlow<List<CategoryEntity>> = activeProviderId
+        .flatMapLatest { pid ->
+            if (pid == null) flowOf(emptyList()) else catalog.categories(pid, "LIVE")
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private val favoriteIds: StateFlow<Set<String>> = activeProviderId
+        .flatMapLatest { pid ->
+            if (pid == null) flowOf(emptySet())
+            else catalog.favoritesByKind(pid, "LIVE").map { favs -> favs.map { it.remoteId }.toSet() }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    private val _filter = MutableStateFlow("ALL")
+    val filter: StateFlow<String> = _filter.asStateFlow()
+
+    val channels: StateFlow<List<ChannelEntity>> = combine(
+        allChannels,
+        favoriteIds,
+        _filter,
+    ) { channels, favorites, selected ->
+        when (selected) {
+            "ALL" -> channels
+            "FAVORITES" -> channels.filter { it.remoteId in favorites }
+            else -> channels.filter { it.categoryId == selected }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun selectFilter(value: String) {
+        _filter.value = value
+    }
 
     private val _programmes = MutableStateFlow<Map<Long, List<EpgEntity>>>(emptyMap())
     val programmes: StateFlow<Map<Long, List<EpgEntity>>> = _programmes.asStateFlow()
@@ -141,6 +179,8 @@ fun GuideGridScreen(
     vm: GuideGridViewModel = hiltViewModel(),
 ) {
     val channels by vm.channels.collectAsState()
+    val categories by vm.categories.collectAsState()
+    val selectedFilter by vm.filter.collectAsState()
     val byChannel by vm.programmes.collectAsState()
     val loading by vm.loading.collectAsState()
 
@@ -203,6 +243,35 @@ fun GuideGridScreen(
                 ) {
                     Text(if (loading) S.guideLoading else "REFRESH GUIDE", fontSize = 13.sp, color = T.Fg2)
                 }
+            }
+        }
+
+        // Fast TV-first filtering. Large providers can expose thousands of
+        // channels, so Guide should never require scrolling one enormous list.
+        LazyRow(
+            contentPadding = PaddingValues(start = T.EdgeGutter, end = T.EdgeGutter, bottom = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item("guide-all") {
+                GuideFilterChip(
+                    label = "ALL",
+                    selected = selectedFilter == "ALL",
+                    onClick = { vm.selectFilter("ALL") },
+                )
+            }
+            item("guide-favorites") {
+                GuideFilterChip(
+                    label = "★ FAVORITES",
+                    selected = selectedFilter == "FAVORITES",
+                    onClick = { vm.selectFilter("FAVORITES") },
+                )
+            }
+            items(categories, key = { "guide-cat-${it.remoteId}" }) { cat ->
+                GuideFilterChip(
+                    label = com.ultratv.tv.nativeapp.ui.common.prettyCategoryName(cat.name).uppercase(),
+                    selected = selectedFilter == cat.remoteId,
+                    onClick = { vm.selectFilter(cat.remoteId) },
+                )
             }
         }
 
@@ -476,6 +545,34 @@ private fun GuideRow(
                 }
             }
         }
+    }
+}
+
+@OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
+@Composable
+private fun GuideFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val T = com.ultratv.tv.nativeapp.ui.theme.UltraTokens
+    Card(
+        onClick = onClick,
+        shape = CardDefaults.shape(RoundedCornerShape(10.dp)),
+        colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
+            containerColor = if (selected) T.AccentSoft else T.Surface1,
+            focusedContainerColor = T.Accent,
+            focusedContentColor = androidx.compose.ui.graphics.Color.White,
+        ),
+    ) {
+        Text(
+            label,
+            color = if (selected) T.Fg else T.Fg3,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.7.sp,
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+        )
     }
 }
 

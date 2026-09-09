@@ -98,15 +98,24 @@ fun SettingsScreen(
                 "Sign in with the username and password provided for your Fleezy account.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { openDialog = OpenDialog.XTREAM }) { Text("Sign in to Fleezy") }
+            if (providers.isEmpty()) {
+                Text("Not signed in", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 13.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { openDialog = OpenDialog.XTREAM }) { Text("Sign in to Fleezy") }
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("●", color = T.Accent, fontSize = 12.sp)
+                    Spacer(Modifier.width(7.dp))
+                    Text("Connected", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
             }
             message?.let { Text(it, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp) }
         }
 
         // ---- 3. Configured providers ----
         SectionCard {
-            Text("${S.settingsConfiguredHeader} (${providers.size})", color = MaterialTheme.colorScheme.onBackground, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text("Account management", color = MaterialTheme.colorScheme.onBackground, fontSize = 17.sp, fontWeight = FontWeight.Bold)
             if (providers.isEmpty()) {
                 Text(S.settingsNoneYet, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -132,15 +141,15 @@ fun SettingsScreen(
                                 Text(p.name, fontSize = 15.sp, color = MaterialTheme.colorScheme.onBackground)
                             }
                         }
-                        if (!p.active) {
-                            Button(onClick = { vm.setDefault(p.id) }, enabled = !syncing) { Text(S.settingsSetDefault) }
+                        if (providers.size > 1 && !p.active) {
+                            Button(onClick = { vm.setDefault(p.id) }, enabled = !syncing) { Text("Use account") }
                         }
-                        Button(onClick = { vm.resync(p.id) }, enabled = !syncing) { Text(S.settingsResync) }
+                        Button(onClick = { vm.resync(p.id) }, enabled = !syncing) { Text("Refresh") }
                         Button(
                             onClick = { vm.delete(p.id) },
                             enabled = !syncing,
                             colors = ButtonDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        ) { Text(S.delete) }
+                        ) { Text("Remove") }
                     }
                 }
             }
@@ -168,10 +177,9 @@ fun SettingsScreen(
                 }
                 if (currentUri.isNotBlank()) {
                     Text(
-                        text = currentUri.takeLast(60).let { if (currentUri.length > 60) "…$it" else it },
+                        "Custom logo folder selected",
                         color = T.Fg3,
                         fontSize = 11.sp,
-                        fontFamily = com.ultratv.tv.nativeapp.ui.theme.UltraFonts.Mono,
                     )
                 }
             }

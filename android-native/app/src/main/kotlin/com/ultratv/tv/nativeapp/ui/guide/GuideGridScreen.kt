@@ -148,7 +148,7 @@ class GuideGridViewModel @Inject constructor(
         viewModelScope.launch {
             _loading.value = true
             try {
-                val activeId = channels.value.firstOrNull()?.providerId ?: return@launch
+                val activeId = activeProviderId.value ?: return@launch
                 provider.syncXmltv(activeId) { /* SyncStatusBus handles UI */ }
             } finally {
                 _loading.value = false
@@ -321,8 +321,13 @@ fun GuideGridScreen(
         Box(Modifier.fillMaxWidth().height(1.dp).background(T.Line))
 
         if (channels.isEmpty()) {
+            val emptyMessage = when (selectedFilter) {
+                "FAVORITES" -> "No favorite channels yet. Add favorites from Live TV."
+                "ALL" -> S.guideNoChannels
+                else -> "No channels in this category."
+            }
             Text(
-                S.guideNoChannels,
+                emptyMessage,
                 color = T.Fg3,
                 modifier = Modifier.padding(start = T.EdgeGutter, top = 20.dp),
             )

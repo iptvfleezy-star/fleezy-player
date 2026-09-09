@@ -312,6 +312,9 @@ class ProviderRepository @Inject constructor(
             else cats.map { it.copy(locked = adultRegex.containsMatchIn(it.name)) }
 
         try {
+            step("Checking account…", 2)
+            xtream.validateCredentials(p)
+
             step("Live categories…", 5)
             val liveCats = xtream.fetchLiveCategories(p).let(::maybeLock)
             step("Live channels…", 15)

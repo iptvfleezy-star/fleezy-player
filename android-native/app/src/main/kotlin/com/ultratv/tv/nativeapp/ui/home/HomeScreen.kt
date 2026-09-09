@@ -45,6 +45,8 @@ fun HomeScreen(
     onGoLive: () -> Unit,
     onGoMovies: () -> Unit,
     onGoSeries: () -> Unit,
+    onGoGuide: () -> Unit = {},
+    onGoFavorites: () -> Unit = {},
     onPlay: (url: String, title: String) -> Unit = { _, _ -> },
     onOpenMovie: (Long) -> Unit = {},
     onOpenSeries: (Long) -> Unit = {},
@@ -77,7 +79,7 @@ fun HomeScreen(
                 subtitle = "A featured pick from your Fleezy library.",
                 image = (heroItem as? com.ultratv.tv.nativeapp.data.db.SeriesEntity)?.poster
                     ?: (heroItem as? com.ultratv.tv.nativeapp.data.db.MovieEntity)?.poster,
-                rating = 96,
+                rating = null,
                 meta = emptyList(),
                 synopsis = null,
                 cast = null,
@@ -95,22 +97,7 @@ fun HomeScreen(
                         is com.ultratv.tv.nativeapp.data.db.MovieEntity -> onOpenMovie(heroItem.id)
                     }
                 },
-                rightContent = if (channels.isNotEmpty()) ({
-                    com.ultratv.tv.nativeapp.ui.common.NowPlayingMiniColumn(
-                        items = channels.take(4).mapIndexed { idx, c ->
-                            com.ultratv.tv.nativeapp.ui.common.NowPlayingItem(
-                                channelNumber = idx + 1,
-                                channelName = c.name,
-                                channelLogoUrl = c.logo,
-                                channelShort = null,
-                                hueSeed = c.name.hashCode(),
-                                hd = null,
-                                nowTitle = "Live",
-                                endsInMinutes = 30,
-                            )
-                        },
-                    )
-                }) else null,
+                rightContent = null,
             )
         } else {
             // Welcome state — no providers yet
@@ -137,6 +124,32 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(20.dp))
+
+        // Primary TV destinations — keep the most-used actions visible without
+        // making customers hunt through the sidebar.
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = UltraTokens.EdgeGutter),
+        ) {
+            Text(
+                "WATCH",
+                color = UltraTokens.Fg3,
+                fontSize = 11.sp,
+                letterSpacing = 2.3.sp,
+                fontWeight = FontWeight.Medium,
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                HomeQuickAction("LIVE TV", "Watch channels", primary = true, onClick = onGoLive)
+                HomeQuickAction("TV GUIDE", "What's on now", onClick = onGoGuide)
+                HomeQuickAction("FAVORITES", "Your channels", onClick = onGoFavorites)
+                HomeQuickAction("MOVIES", "Browse VOD", onClick = onGoMovies)
+                HomeQuickAction("SERIES", "Browse shows", onClick = onGoSeries)
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
 
         // Active provider chip
         val activeProvider = providers.firstOrNull { it.active } ?: providers.firstOrNull()
@@ -272,6 +285,43 @@ fun HomeScreen(
             },
             onCancel = { actionsFor = null },
         )
+    }
+}
+
+@OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
+@Composable
+private fun HomeQuickAction(
+    title: String,
+    subtitle: String,
+    primary: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .width(200.dp)
+            .height(76.dp),
+        shape = ButtonDefaults.shape(RoundedCornerShape(14.dp)),
+        colors = ButtonDefaults.colors(
+            containerColor = if (primary) UltraTokens.CtaBg else UltraTokens.Surface2,
+            contentColor = if (primary) UltraTokens.CtaFgOnCta else UltraTokens.Fg,
+            focusedContainerColor = if (primary) UltraTokens.CtaBg else UltraTokens.SurfaceStrong,
+            focusedContentColor = if (primary) UltraTokens.CtaFgOnCta else UltraTokens.Fg,
+        ),
+    ) {
+        Column {
+            Text(
+                title,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (primary) UltraTokens.CtaFgOnCta else UltraTokens.Fg,
+            )
+            Text(
+                subtitle,
+                fontSize = 11.sp,
+                color = if (primary) UltraTokens.CtaFgOnCta.copy(alpha = 0.72f) else UltraTokens.Fg3,
+            )
+        }
     }
 }
 

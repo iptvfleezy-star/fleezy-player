@@ -223,7 +223,9 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     var tracksOpen by remember { mutableStateOf(false) }
     var drawerOpen by remember { mutableStateOf(false) }
     var displayMenu by remember { mutableStateOf(false) }
-    var aspectMode by remember { mutableStateOf(AspectMode.Zoom) }
+    var aspectMode by remember(isLive) {
+        mutableStateOf(if (isLive) AspectMode.Zoom else AspectMode.Fit)
+    }
     var playbackSpeed by remember { mutableStateOf(1.0f) }
     var playbackError by remember { mutableStateOf<String?>(null) }
     var chromeVisible by remember { mutableStateOf(false) }

@@ -141,22 +141,25 @@ fun FormField(
 @OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
 @Composable
 fun XtreamDialog(onDismiss: () -> Unit, onSubmit: (name: String, url: String, user: String, pass: String) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
     var user by remember { mutableStateOf("") }
     var pass by remember { mutableStateOf("") }
-    val canSubmit = url.isNotBlank() && user.isNotBlank() && pass.isNotBlank()
+    val canSubmit = user.isNotBlank() && pass.isNotBlank()
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
+
     AddProviderDialog(
-        title = S.addProviderXtreamTitle,
+        title = "Sign in to Fleezy",
         onDismiss = onDismiss,
-        onSubmit = { onSubmit(name, url, user, pass) },
+        onSubmit = {
+            onSubmit(
+                com.ultratv.tv.nativeapp.FleezyConfig.PROVIDER_NAME,
+                com.ultratv.tv.nativeapp.FleezyConfig.XTREAM_BASE_URL,
+                user.trim(),
+                pass,
+            )
+        },
         canSubmit = canSubmit,
     ) {
-        FormField(S.fieldNameOptional, name, { name = it })
-        FormField(S.fieldServerUrl, url, { url = it }, keyboardType = KeyboardType.Uri,
-            placeholder = "http://provider.com:8080")
-        FormField(S.fieldUsername, user, { user = it })
+        FormField(S.fieldUsername, user, { user = it }, autoFocus = true)
         FormField(S.fieldPassword, pass, { pass = it }, password = true)
     }
 }

@@ -256,6 +256,17 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         return
     }
 
+    // Fire TV / Android TV must treat active playback as foreground viewing.
+    // Keep the display awake only while the player screen is mounted, then
+    // restore the device's normal sleep policy when the user leaves playback.
+    DisposableEffect(Unit) {
+        val activity = context as? Activity
+        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
     val player = remember {
         // bufferSeconds = how much we want to *hold* in memory; the "start
         // playback" threshold should always be very small so live TV starts

@@ -25,7 +25,6 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Switch
 import androidx.tv.material3.Text
 import com.ultratv.tv.nativeapp.data.prefs.AppTheme
-import com.ultratv.tv.nativeapp.data.prefs.DefaultPlayer
 import com.ultratv.tv.nativeapp.data.prefs.SidebarPosition
 import com.ultratv.tv.nativeapp.ui.AppViewModel
 
@@ -68,11 +67,6 @@ fun PreferencesSection(vm: AppViewModel = hiltViewModel()) {
             hint = "Match the TV's refresh rate to the stream (24/25/30/50/60). Reduces judder on motion.",
             value = p.autoFrameRate,
         ) { vm.setAutoFrameRate(it) }
-        SwitchRow(
-            title = "Software decoder",
-            hint = "Use the bundled software decoder over the device's hardware decoder. Helps with HEVC main10 / quirky HLS variants.",
-            value = p.preferSoftwareDecoder,
-        ) { vm.setPreferSoftwareDecoder(it) }
         PrefRow(label = "EPG time offset (min)") {
             listOf(-120, -60, -30, 0, 30, 60, 120).forEach { off ->
                 ChoiceChip(

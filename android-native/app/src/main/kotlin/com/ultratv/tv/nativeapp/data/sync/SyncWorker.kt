@@ -39,7 +39,9 @@ class SyncWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         return try {
             val providers = providerRepo.observeProviders().first()
-            providers.forEach { p -> runCatching { providerRepo.syncAll(p.id) } }
+            // Let any provider failure escape to the catch below so WorkManager
+            // retries and we do not record a false "successful sync" timestamp.
+            providers.forEach { p -> providerRepo.syncAll(p.id) }
             prefs.setLastSyncAt(System.currentTimeMillis())
             Result.success()
         } catch (t: Throwable) {

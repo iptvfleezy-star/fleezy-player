@@ -129,7 +129,9 @@ class MainActivity : ComponentActivity() {
                 if (due) {
                     runCatching {
                         val all = providerRepo.observeProviders().first()
-                        all.forEach { p -> runCatching { providerRepo.syncAll(p.id) } }
+                        all.forEach { p -> providerRepo.syncAll(p.id) }
+                        // Only mark the refresh timestamp when every provider
+                        // completed successfully. A failure stays due for retry.
                         prefsStore.setLastSyncAt(System.currentTimeMillis())
                     }
                 }

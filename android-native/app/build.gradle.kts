@@ -41,6 +41,23 @@ android {
     // (stream.fleezy.player.debug), so there is no key-rotation relationship
     // between alpha installs and the eventual customer release.
     signingConfigs {
+        getByName("debug") {
+            // CI explicitly pins debug builds to the repository's disposable
+            // Fleezy alpha key. This makes successive alpha APKs update-compatible
+            // instead of relying on whatever debug keystore AGP happens to resolve.
+            val debugKsPath = System.getenv("FLEEZY_DEBUG_KEYSTORE")
+            if (!debugKsPath.isNullOrBlank() && file(debugKsPath).exists()) {
+                storeFile = file(debugKsPath)
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
+            }
+        }
+
         create("release") {
             val ksPath = System.getenv("FLEEZY_KEYSTORE")
             if (!ksPath.isNullOrBlank() && file(ksPath).exists()) {

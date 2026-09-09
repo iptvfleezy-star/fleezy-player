@@ -34,7 +34,6 @@ import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.ultratv.tv.nativeapp.ui.common.ContentRail
-import com.ultratv.tv.nativeapp.ui.common.HeroBanner
 import com.ultratv.tv.nativeapp.ui.common.PosterCard
 import com.ultratv.tv.nativeapp.ui.theme.UltraFonts
 import com.ultratv.tv.nativeapp.ui.theme.UltraTokens
@@ -61,6 +60,13 @@ fun HomeScreen(
 
     var actionsFor by remember { mutableStateOf<com.ultratv.tv.nativeapp.data.db.WatchHistoryEntity?>(null) }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
+    val activeProvider = providers.firstOrNull { it.active } ?: providers.firstOrNull()
+    val recentLive = recent
+        .asSequence()
+        .filter { it.kind == "LIVE" }
+        .distinctBy { it.remoteId }
+        .take(12)
+        .toList()
 
     Column(
         Modifier
@@ -68,62 +74,46 @@ fun HomeScreen(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState()),
     ) {
-        // ---- HERO ----
-        val heroItem = series.firstOrNull() ?: movies.firstOrNull()
-        if (heroItem != null) {
-            HeroBanner(
-                eyebrow = "Featured",
-                title = (heroItem as? com.ultratv.tv.nativeapp.data.db.SeriesEntity)?.name
-                    ?: (heroItem as? com.ultratv.tv.nativeapp.data.db.MovieEntity)?.name
-                    ?: S.homeWelcome,
-                subtitle = "A featured pick from your Fleezy library.",
-                image = (heroItem as? com.ultratv.tv.nativeapp.data.db.SeriesEntity)?.poster
-                    ?: (heroItem as? com.ultratv.tv.nativeapp.data.db.MovieEntity)?.poster,
-                rating = null,
-                meta = emptyList(),
-                synopsis = null,
-                cast = null,
-                primaryLabel = "Open",
-                onPrimary = {
-                    when (heroItem) {
-                        is com.ultratv.tv.nativeapp.data.db.SeriesEntity -> onOpenSeries(heroItem.id)
-                        is com.ultratv.tv.nativeapp.data.db.MovieEntity -> onOpenMovie(heroItem.id)
-                    }
-                },
-                secondaryLabel = "Details",
-                onSecondary = {
-                    when (heroItem) {
-                        is com.ultratv.tv.nativeapp.data.db.SeriesEntity -> onOpenSeries(heroItem.id)
-                        is com.ultratv.tv.nativeapp.data.db.MovieEntity -> onOpenMovie(heroItem.id)
-                    }
-                },
-                rightContent = null,
-            )
-        } else {
-            // Welcome state — no providers yet
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = UltraTokens.EdgeGutter, top = 60.dp, end = UltraTokens.EdgeGutter),
-            ) {
+        // Compact TV-first header. Keep the primary actions above the fold
+        // instead of making customers scroll past an auto-selected VOD hero.
+        Spacer(Modifier.height(24.dp))
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = UltraTokens.EdgeGutter),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
                 Text(
-                    "Welcome.",
-                    fontFamily = UltraFonts.Serif,
-                    fontSize = 84.sp,
-                    lineHeight = 84.sp,
-                    letterSpacing = (-2.1).sp,
+                    "FLEEZY",
                     color = UltraTokens.Fg,
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 3.2.sp,
                 )
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    S.homeWelcome,
-                    color = UltraTokens.Fg2,
-                    fontSize = 18.sp,
+                    "Live TV, movies and series",
+                    color = UltraTokens.Fg3,
+                    fontSize = 14.sp,
                 )
+            }
+            if (activeProvider != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("●", color = UltraTokens.Accent, fontSize = 12.sp)
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        "Connected",
+                        color = UltraTokens.Fg2,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
         }
 
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(22.dp))
 
         // Primary TV destinations — keep the most-used actions visible without
         // making customers hunt through the sidebar.
@@ -151,24 +141,23 @@ fun HomeScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // Active provider chip
-        val activeProvider = providers.firstOrNull { it.active } ?: providers.firstOrNull()
-        if (activeProvider != null) {
-            Row(
-                Modifier.padding(start = UltraTokens.EdgeGutter, bottom = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "★",
-                    color = UltraTokens.Accent,
-                    fontSize = 14.sp,
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    activeProvider.name,
-                    color = UltraTokens.Fg3,
-                    fontSize = 13.sp,
-                )
+        if (recentLive.isNotEmpty()) {
+            ContentRail(
+                title = "Recently watched channels",
+                eyebrow = "Live TV",
+                cardWidth = 260.dp,
+                items = recentLive,
+                itemKey = { "live-${it.providerId}-${it.remoteId}" },
+            ) { h ->
+                PosterCard(
+                    title = h.title,
+                    poster = h.poster,
+                    subtitle = "Live",
+                    aspect = 16f / 9f,
+                ) {
+                    vm.playFromHistory(h)
+                    onPlay(h.streamUrl, h.title)
+                }
             }
         }
 

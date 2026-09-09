@@ -2,7 +2,6 @@ package com.ultratv.tv.nativeapp.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ultratv.tv.nativeapp.data.config.DeviceMac
 import com.ultratv.tv.nativeapp.data.db.ChannelEntity
 import com.ultratv.tv.nativeapp.data.db.MovieEntity
 import com.ultratv.tv.nativeapp.data.db.ProviderEntity
@@ -31,11 +30,8 @@ class HomeViewModel @Inject constructor(
     private val provider: ProviderRepository,
     private val catalog: CatalogRepository,
     private val history: HistoryRepository,
-    private val deviceMac: DeviceMac,
     private val playback: PlaybackContext,
 ) : ViewModel() {
-
-    val mac: String = deviceMac.mac
 
     val providers: StateFlow<List<ProviderEntity>> = provider.observeProviders()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

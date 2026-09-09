@@ -351,7 +351,7 @@ private fun ChannelRow(
                 }
                 if (nowProgramme != null) {
                     Text(
-                        nowProgramme.title + (nextProgramme?.let { "  ·  puis ${it.title}" } ?: ""),
+                        nowProgramme.title + (nextProgramme?.let { "  ·  Next: ${it.title}" } ?: ""),
                         color = UltraTokens.Fg3,
                         fontSize = 11.sp,
                         maxLines = 1,
@@ -373,7 +373,7 @@ private fun LivePreviewPane(
     onPlayCatchup: (url: String, title: String) -> Unit = { _, _ -> },
 ) {
     val nowTitle = nowProgramme?.title ?: "Now playing"
-    val nextTitle = nextProgramme?.title ?: "À venir"
+    val nextTitle = nextProgramme?.title ?: "Up next"
     val hue = channel.name.hashCode()
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -460,12 +460,9 @@ private fun LivePreviewPane(
                     .align(Alignment.TopStart)
                     .fillMaxWidth()
                     .padding(18.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.Start,
             ) {
                 LiveChip()
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    UhdBadge()
-                }
             }
 
             // Bottom overlay: number/name + now title + watch CTA
@@ -488,7 +485,7 @@ private fun LivePreviewPane(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            "· ${channel.name}",
+                            channel.name,
                             color = Color.White.copy(alpha = 0.7f),
                             fontSize = 13.sp,
                         )
@@ -530,8 +527,8 @@ private fun LivePreviewPane(
             maxItemsInEachRow = 4,
         ) {
             Hint("OK", "Play")
-            Hint("▲▼", "Zap")
-            Hint("★", "Favorite")
+            Hint("▲▼", "Browse")
+            Hint("◀", "Categories")
         }
     }
 }
@@ -552,7 +549,13 @@ private fun DaySchedule(
     onRemindPick: (com.ultratv.tv.nativeapp.data.db.EpgEntity) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    val now = System.currentTimeMillis()
+    var now by remember { androidx.compose.runtime.mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
     val currentIdx = items.indexOfFirst { it.startMs <= now && it.endMs > now }
     val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     LaunchedEffect(currentIdx, channel.id) {

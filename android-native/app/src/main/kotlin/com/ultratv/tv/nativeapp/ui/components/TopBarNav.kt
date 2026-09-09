@@ -52,9 +52,10 @@ private data class TopBarItem(
 private val items = listOf(
     TopBarItem("home",       { it.navHome },       UltraIcon.Home),
     TopBarItem("live",       { it.navLive },       UltraIcon.Live),
+    TopBarItem("guide",      { it.navGuide },      UltraIcon.Guide),
+    TopBarItem("favorites",  { it.navFavorites },  UltraIcon.Heart),
     TopBarItem("movies",     { it.navMovies },     UltraIcon.Film),
     TopBarItem("series",     { it.navSeries },     UltraIcon.Series),
-    TopBarItem("guide",      { it.navGuide },      UltraIcon.Guide),
     TopBarItem("settings",   { it.navSettings },   UltraIcon.Gear),
 )
 

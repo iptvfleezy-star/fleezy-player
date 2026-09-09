@@ -53,7 +53,7 @@ fun SeriesScreen(onOpen: (Long) -> Unit, vm: SeriesListViewModel = hiltViewModel
     ) {
         if (railsMode && featured != null) {
             HeroBanner(
-                eyebrow = "Série du moment",
+                eyebrow = "Featured series",
                 title = featured!!.name,
                 subtitle = featured!!.plot,
                 meta = listOfNotNull(

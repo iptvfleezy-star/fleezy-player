@@ -696,7 +696,7 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                                 .background(T.Ok, androidx.compose.foundation.shape.CircleShape),
                         )
                         androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
-                        Text("sain", color = T.Ok, fontSize = 11.sp)
+                        Text("healthy", color = T.Ok, fontSize = 11.sp)
                     }
                 }
                 androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))

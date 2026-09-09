@@ -471,7 +471,15 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     ) {
         AndroidView(
             factory = { ctx ->
-                PlayerView(ctx).apply {
+                // Fire TV can decode AVC successfully while still presenting a black
+                // SurfaceView when embedded in this Compose hierarchy. Inflate a
+                // TextureView-backed PlayerView instead so decoded frames are composed
+                // into the same UI layer as the rest of Fleezy's player chrome.
+                (android.view.LayoutInflater.from(ctx).inflate(
+                    com.ultratv.tv.nativeapp.R.layout.fleezy_player_view,
+                    null,
+                    false,
+                ) as PlayerView).apply {
                     this.player = player
                     useController = true
                     setShowFastForwardButton(!isLive)

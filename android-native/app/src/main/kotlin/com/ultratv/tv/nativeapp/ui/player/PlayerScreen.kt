@@ -227,6 +227,7 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     var playbackSpeed by remember { mutableStateOf(1.0f) }
     var playbackError by remember { mutableStateOf<String?>(null) }
     var chromeVisible by remember { mutableStateOf(false) }
+    var statsOpen by remember { mutableStateOf(false) }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
 
     BackHandler {
@@ -400,7 +401,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     }
 
     // Stream-stats overlay: tracks codec/resolution/bitrate while playing.
-    var statsOpen by remember { mutableStateOf(false) }
     var stats by remember { mutableStateOf(StreamStats()) }
     LaunchedEffect(statsOpen, isLive, chromeVisible) {
         if (!statsOpen && !(isLive && chromeVisible)) return@LaunchedEffect

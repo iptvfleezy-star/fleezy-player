@@ -84,27 +84,6 @@ class MainActivity : ComponentActivity() {
         RemoteLog.info("activity", "onCreate restoredState=${savedInstanceState != null}")
         setContent { Root() }
         kickoffStartupTasks()
-        // Auto-update flow: query GitHub Releases on launch and, if a newer
-        // version is found, download + fire the system install Intent without
-        // asking the user first. They still get the OS's "Install this app?"
-        // prompt — that one can't be skipped without device-owner privileges.
-        lifecycleScope.launch {
-            val info = com.ultratv.tv.nativeapp.update.UpdateChecker.checkForUpdate()
-                ?: return@launch
-            com.ultratv.tv.nativeapp.RemoteLog.info(
-                "update",
-                "auto-installing ${info.tag}",
-            )
-            runCatching {
-                com.ultratv.tv.nativeapp.update.UpdateChecker
-                    .downloadAndInstall(this@MainActivity, info)
-            }.onFailure {
-                com.ultratv.tv.nativeapp.RemoteLog.warn(
-                    "update",
-                    "auto-install failed: ${it.javaClass.simpleName} ${it.message}",
-                )
-            }
-        }
     }
 
     /**

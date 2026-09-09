@@ -56,7 +56,7 @@ fun MoviesScreen(onOpen: (Long) -> Unit, vm: MoviesViewModel = hiltViewModel()) 
     ) {
         if (railsMode && featured != null) {
             HeroBanner(
-                eyebrow = "Film du moment",
+                eyebrow = "Featured movie",
                 title = featured!!.name,
                 subtitle = featured!!.plot,
                 synopsis = null,

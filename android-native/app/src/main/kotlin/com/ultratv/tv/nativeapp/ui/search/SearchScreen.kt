@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +51,7 @@ import com.ultratv.tv.nativeapp.ui.common.ChannelLogo
 import com.ultratv.tv.nativeapp.ui.components.UltraIcon
 import com.ultratv.tv.nativeapp.ui.theme.UltraFonts
 import com.ultratv.tv.nativeapp.ui.theme.UltraTokens
+import coil.compose.AsyncImage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -85,7 +87,13 @@ class SearchViewModel @Inject constructor(
             delay(220)
             val pid = provider.firstActive()?.id ?: return@launch
             _results.value = catalog.search(pid, s)
-            if (s.length >= 3) history.record(s)
+            // Only promote a query into Recent after the user pauses on it.
+            // This avoids filling history with partial strings while typing
+            // letter-by-letter with a TV remote.
+            if (s.length >= 3) {
+                delay(900)
+                if (_q.value == s) history.record(s)
+            }
         }
     }
 
@@ -300,6 +308,12 @@ fun SearchScreen(
             Spacer(Modifier.height(28.dp))
 
             val total = r.channels.size + r.movies.size + r.series.size
+            val visibleTotal = when (activeFilter) {
+                1 -> r.movies.size
+                2 -> r.series.size
+                3 -> r.channels.size
+                else -> total
+            }
             if (q.isBlank()) {
                 Text(
                     "Start typing to search.",
@@ -309,7 +323,7 @@ fun SearchScreen(
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "$total RESULTS FOR",
+                        "$visibleTotal RESULTS FOR",
                         color = UltraTokens.Fg3,
                         fontSize = 11.sp,
                         letterSpacing = 2.3.sp,
@@ -329,12 +343,12 @@ fun SearchScreen(
             val showAll = activeFilter == 0
             if (showAll || activeFilter == 1) {
                 ResultSection("Movies", r.movies, total) { m ->
-                    SquareResultCard(m.name, m.year?.toString(), onClick = { onOpenMovie(m.id) })
+                    SquareResultCard(m.name, m.year?.toString(), m.poster, onClick = { onOpenMovie(m.id) })
                 }
             }
             if (showAll || activeFilter == 2) {
                 ResultSection("Series", r.series, total) { s ->
-                    SquareResultCard(s.name, s.year?.toString(), onClick = { onOpenSeries(s.id) })
+                    SquareResultCard(s.name, s.year?.toString(), s.poster, onClick = { onOpenSeries(s.id) })
                 }
             }
             if (showAll || activeFilter == 3) {
@@ -429,14 +443,25 @@ private fun <T : Any> ResultSection(
 }
 
 @Composable
-private fun SquareResultCard(title: String, sub: String?, onClick: () -> Unit) {
+private fun SquareResultCard(
+    title: String,
+    sub: String?,
+    poster: String?,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
     Column(
         Modifier
             .width(170.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(UltraTokens.Surface1)
-            .border(1.dp, UltraTokens.Line, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .background(if (focused) UltraTokens.SurfaceStrong else UltraTokens.Surface1)
+            .border(
+                if (focused) 2.dp else 1.dp,
+                if (focused) UltraTokens.Accent else UltraTokens.Line,
+                RoundedCornerShape(12.dp),
+            )
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(12.dp),
     ) {
         Box(
@@ -445,9 +470,24 @@ private fun SquareResultCard(title: String, sub: String?, onClick: () -> Unit) {
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(10.dp))
                 .background(UltraTokens.Surface2),
-        )
+        ) {
+            if (!poster.isNullOrBlank()) {
+                AsyncImage(
+                    model = poster,
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            }
+        }
         Spacer(Modifier.height(8.dp))
-        Text(title, color = UltraTokens.Fg, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 2)
+        Text(
+            title,
+            color = UltraTokens.Fg,
+            fontSize = 13.sp,
+            fontWeight = if (focused) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 2,
+        )
         if (sub != null) {
             Text(sub, color = UltraTokens.Fg3, fontSize = 11.sp)
         }
@@ -456,13 +496,19 @@ private fun SquareResultCard(title: String, sub: String?, onClick: () -> Unit) {
 
 @Composable
 private fun ChannelResultCard(c: ChannelEntity, onClick: () -> Unit) {
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
     Row(
         Modifier
             .width(280.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(UltraTokens.Surface1)
-            .border(1.dp, UltraTokens.Line, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .background(if (focused) UltraTokens.SurfaceStrong else UltraTokens.Surface1)
+            .border(
+                if (focused) 2.dp else 1.dp,
+                if (focused) UltraTokens.Accent else UltraTokens.Line,
+                RoundedCornerShape(12.dp),
+            )
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

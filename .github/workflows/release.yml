@@ -43,30 +43,37 @@ jobs:
       - name: Setup Gradle (with cache)
         uses: gradle/actions/setup-gradle@v4
 
-      # Optional release-signing material. When the FLEEZY_* secrets are absent
-      # the build falls back to the debug keystore (see build.gradle.kts), still
-      # producing an installable debug-signed APK. When present, we materialise
-      # the base64 keystore + lineage to disk and the resignRelease task re-signs
-      # the APK with the rotation lineage via apksigner.
-      - name: Materialise signing keystore (if configured)
+      # Production releases fail closed. Never publish stream.fleezy.player
+      # with a debug/temporary signer: customers must always receive APKs signed
+      # by the permanent Fleezy release identity.
+      - name: Verify Fleezy signing secrets
+        env:
+          FLEEZY_KEYSTORE_BASE64: ${{ secrets.FLEEZY_KEYSTORE_BASE64 }}
+          FLEEZY_KEYSTORE_PASSWORD: ${{ secrets.FLEEZY_KEYSTORE_PASSWORD }}
+          FLEEZY_KEY_ALIAS: ${{ secrets.FLEEZY_KEY_ALIAS }}
+          FLEEZY_KEY_PASSWORD: ${{ secrets.FLEEZY_KEY_PASSWORD }}
+          FLEEZY_LINEAGE_BASE64: ${{ secrets.FLEEZY_LINEAGE_BASE64 }}
+        run: |
+          missing=0
+          for v in FLEEZY_KEYSTORE_BASE64 FLEEZY_KEYSTORE_PASSWORD FLEEZY_KEY_ALIAS FLEEZY_KEY_PASSWORD FLEEZY_LINEAGE_BASE64; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Missing required release secret: $v"
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+
+      - name: Materialise Fleezy signing keystore
         id: signing
         env:
           FLEEZY_KEYSTORE_BASE64: ${{ secrets.FLEEZY_KEYSTORE_BASE64 }}
           FLEEZY_LINEAGE_BASE64: ${{ secrets.FLEEZY_LINEAGE_BASE64 }}
         run: |
-          if [ -n "$FLEEZY_KEYSTORE_BASE64" ]; then
-            echo "$FLEEZY_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/fleezy.keystore"
-            echo "keystore=$RUNNER_TEMP/fleezy.keystore" >> "$GITHUB_OUTPUT"
-            echo "signed=true" >> "$GITHUB_OUTPUT"
-            if [ -n "$FLEEZY_LINEAGE_BASE64" ]; then
-              echo "$FLEEZY_LINEAGE_BASE64" | base64 -d > "$RUNNER_TEMP/fleezy.lineage"
-              echo "lineage=$RUNNER_TEMP/fleezy.lineage" >> "$GITHUB_OUTPUT"
-            fi
-            echo "Release signing material configured."
-          else
-            echo "signed=false" >> "$GITHUB_OUTPUT"
-            echo "No FLEEZY_* secrets — falling back to plain debug-signed APK."
-          fi
+          echo "$FLEEZY_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/fleezy.keystore"
+          echo "$FLEEZY_LINEAGE_BASE64" | base64 -d > "$RUNNER_TEMP/fleezy.lineage"
+          echo "keystore=$RUNNER_TEMP/fleezy.keystore" >> "$GITHUB_OUTPUT"
+          echo "lineage=$RUNNER_TEMP/fleezy.lineage" >> "$GITHUB_OUTPUT"
+          echo "Release signing material configured."
 
       - name: Build release APK
         env:
@@ -77,11 +84,7 @@ jobs:
           FLEEZY_LINEAGE: ${{ steps.signing.outputs.lineage }}
         run: |
           chmod +x gradlew
-          if [ "${{ steps.signing.outputs.signed }}" = "true" ]; then
-            ./gradlew assembleRelease resignRelease --console=plain --stacktrace
-          else
-            ./gradlew assembleRelease --console=plain --stacktrace
-          fi
+          ./gradlew assembleRelease resignRelease --console=plain --stacktrace
 
       # AGP emits app-release.apk; the Fleezy release artifact uses a stable customer-facing filename.
       # Emit a sibling SHA-256 file for verification and future Fleezy updater support.

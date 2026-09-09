@@ -49,12 +49,13 @@ private data class NavEntry(
 private val navItems = listOf(
     NavEntry("home",       { it.navHome },       UltraIcon.Home),
     NavEntry("live",       { it.navLive },       UltraIcon.Live),
-    NavEntry("movies",     { it.navMovies },     UltraIcon.Film),
-    NavEntry("series",     { it.navSeries },     UltraIcon.Series),
     NavEntry("guide",      { it.navGuide },      UltraIcon.Guide),
     NavEntry("favorites",  { it.navFavorites },  UltraIcon.Heart),
+    NavEntry("search",     { it.navSearch },     UltraIcon.Search),
+    NavEntry("movies",     { it.navMovies },     UltraIcon.Film),
+    NavEntry("series",     { it.navSeries },     UltraIcon.Series),
     NavEntry("categories", { it.navCategories }, UltraIcon.Folder),
-    NavEntry("recordings", { "Recordings" },     UltraIcon.Record),
+    NavEntry("recordings", { it.navRecordings }, UltraIcon.Record),
     NavEntry("settings",   { it.navSettings },   UltraIcon.Gear),
 )
 
@@ -134,24 +135,7 @@ fun SidebarNav(navController: NavController) {
 
         Spacer(Modifier.weight(1f, fill = true))
 
-        // Profile chip
-        Row(
-            Modifier.padding(horizontal = 24.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                Modifier.size(32.dp).clip(RoundedCornerShape(8.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFF3057B7), Color(0xFF6839B5)))),
-                contentAlignment = Alignment.Center,
-            ) { Text("F", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
-            if (expanded) {
-                Spacer(Modifier.width(12.dp))
-                Column {
-                    Text("Fleezy", color = UltraTokens.Fg2, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                    Text("Player", color = UltraTokens.Fg3, fontSize = 11.sp)
-                }
-            }
-        }
+
     }
 }
 

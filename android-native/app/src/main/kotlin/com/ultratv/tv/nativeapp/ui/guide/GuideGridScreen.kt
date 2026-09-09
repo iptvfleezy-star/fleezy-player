@@ -95,7 +95,6 @@ class GuideGridViewModel @Inject constructor(
     fun refreshXmltv() {
         viewModelScope.launch {
             _loading.value = true
-            val pid = catalog.channels(0).let { 0L }  // dummy to satisfy compiler — real id below
             try {
                 val activeId = channels.value.firstOrNull()?.providerId ?: return@launch
                 provider.syncXmltv(activeId) { /* SyncStatusBus handles UI */ }
@@ -147,7 +146,7 @@ fun GuideGridScreen(
         androidx.compose.foundation.layout.Spacer(Modifier.height(40.dp))
         Column(Modifier.padding(start = T.EdgeGutter, end = T.EdgeGutter, bottom = 20.dp)) {
             Text(
-                "GUIDE TÉLÉ",
+                "TV GUIDE",
                 color = T.Fg3,
                 fontSize = 11.sp,
                 letterSpacing = 2.3.sp,
@@ -190,7 +189,7 @@ fun GuideGridScreen(
         ) {
             // Left header — CHAÎNE label
             Text(
-                "CHAÎNE",
+                "CHANNEL",
                 color = T.Fg3,
                 fontSize = 11.sp,
                 letterSpacing = 2.3.sp,

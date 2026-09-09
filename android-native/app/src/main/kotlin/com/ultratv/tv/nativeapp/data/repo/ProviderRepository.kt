@@ -251,20 +251,33 @@ class ProviderRepository @Inject constructor(
 
     suspend fun addXtream(name: String, baseUrl: String, username: String, password: String): Long {
         val normalised = baseUrl.trimEnd('/')
-        // Idempotent: if the (kind, baseUrl, username) tuple already exists,
-        // reuse its id rather than creating a duplicate row. Callers that
-        // sync after add() will simply re-pull catalogs into the same record.
-        providerDao.findByIdentity("XTREAM", normalised, username)?.let { return it.id }
-        return providerDao.upsert(
+        val cleanUser = username.trim()
+        val existing = providerDao.findByIdentity("XTREAM", normalised, cleanUser)
+        val candidate = if (existing != null) {
+            existing.copy(
+                name = name.ifBlank { existing.name },
+                password = password,
+            )
+        } else {
             ProviderEntity(
-                name = name.ifBlank { runCatching { java.net.URI(normalised).host }.getOrNull() ?: "Xtream" },
+                name = name.ifBlank { runCatching { java.net.URI(normalised).host }.getOrNull() ?: "Fleezy" },
                 kind = "XTREAM",
                 baseUrl = normalised,
-                username = username,
+                username = cleanUser,
                 password = password,
-                active = false,    // explicit default is set in Settings; see setDefault
-            ),
-        )
+                active = false,
+            )
+        }
+
+        // Validate before touching the database. A typo must never overwrite
+        // a previously working password or create a ghost provider record.
+        xtream.validateCredentials(candidate)
+
+        if (existing != null) {
+            providerDao.upsert(candidate)
+            return existing.id
+        }
+        return providerDao.upsert(candidate)
     }
 
     /**

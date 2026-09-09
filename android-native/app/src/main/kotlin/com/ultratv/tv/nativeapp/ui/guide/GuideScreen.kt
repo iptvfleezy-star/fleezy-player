@@ -91,7 +91,7 @@ fun GuideScreen(vm: GuideViewModel = hiltViewModel()) {
         Spacer(Modifier.height(40.dp))
         Column(Modifier.padding(start = UltraTokens.EdgeGutter, end = UltraTokens.EdgeGutter, bottom = 16.dp)) {
             Text(
-                "GUIDE TÉLÉ",
+                "TV GUIDE",
                 color = UltraTokens.Fg3,
                 fontSize = 11.sp,
                 letterSpacing = 2.3.sp,

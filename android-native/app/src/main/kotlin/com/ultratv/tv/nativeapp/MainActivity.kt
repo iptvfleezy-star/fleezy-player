@@ -81,7 +81,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        RemoteLog.info("activity", "onCreate restoredState=${savedInstanceState != null}")
         setContent { Root() }
         kickoffStartupTasks()
     }
@@ -242,13 +241,6 @@ private fun UltraTvAppRoot(sidebarPosition: SidebarPosition) {
 @androidx.tv.material3.ExperimentalTvMaterial3Api
 @Composable
 private fun NavGraph(nav: androidx.navigation.NavHostController) {
-    // Ship the current route to the worker on every back-stack change. Lets us
-    // see in /logs which screen the user was on right before a silent crash.
-    androidx.compose.runtime.LaunchedEffect(nav) {
-        nav.currentBackStackEntryFlow.collect { entry ->
-            RemoteLog.info("nav", "→ ${entry.destination.route ?: "(unknown)"}")
-        }
-    }
     NavHost(navController = nav, startDestination = Routes.HOME) {
         composable(Routes.HOME) {
             HomeScreen(

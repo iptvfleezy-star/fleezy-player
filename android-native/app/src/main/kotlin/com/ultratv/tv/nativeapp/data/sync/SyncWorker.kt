@@ -51,7 +51,7 @@ class SyncWorker @AssistedInject constructor(
 }
 
 object SyncScheduler {
-    private const val UNIQUE_NAME = "ultratv-bg-sync"
+    private const val UNIQUE_NAME = "fleezy-bg-sync"
 
     /** (Re-)schedules background sync. Pass 0 to cancel. */
     fun schedule(context: Context, intervalHours: Int) {

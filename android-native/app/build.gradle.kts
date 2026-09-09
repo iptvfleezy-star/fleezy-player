@@ -22,25 +22,6 @@ val appVersionCode: Int = run {
     parts[0] * 10_000 + parts[1] * 100 + parts[2]
 }
 
-// Remote-telemetry endpoint + token. Previously hardcoded as consts inside
-// RemoteLog.kt and baked into the APK. They are now BuildConfig fields so the
-// values can be overridden per build without touching source — via a Gradle
-// property (-PULTRA_LOG_URL=... / gradle.properties) or an environment variable
-// (ULTRA_LOG_URL / ULTRA_LOG_TOKEN). The defaults below are the historical
-// production values, so a plain local/CI build behaves exactly as before.
-// Rotate these in lock-step with the worker secret.
-fun resolveBuildConfigValue(name: String, default: String): String =
-    (project.findProperty(name) as String?)?.takeIf { it.isNotBlank() }
-        ?: System.getenv(name)?.takeIf { it.isNotBlank() }
-        ?: default
-
-val ultraLogUrl = resolveBuildConfigValue(
-    "ULTRA_LOG_URL", "https://ultratv-config.khalilbenaz.workers.dev",
-)
-val ultraLogToken = resolveBuildConfigValue(
-    "ULTRA_LOG_TOKEN", "f-w31zHuqg0ntBPRSJtOVEXGB55B9uv5",
-)
-
 android {
     namespace = "com.ultratv.tv.nativeapp"
     compileSdk = 35
@@ -48,7 +29,7 @@ android {
     defaultConfig {
         // Different applicationId during development so it can be installed
         // alongside the existing Capacitor build (com.ultratv.tv).
-        applicationId = "com.ultratv.tv.nativeapp"
+        applicationId = "stream.fleezy.player"
         minSdk = 28
         targetSdk = 35
         versionCode = appVersionCode
@@ -61,8 +42,8 @@ android {
         buildConfigField("String", "LOG_TOKEN", "\"$ultraLogToken\"")
     }
 
-    // Release signing — reads ULTRA_KEYSTORE / ULTRA_KEYSTORE_PASSWORD /
-    // ULTRA_KEY_ALIAS / ULTRA_KEY_PASSWORD env vars (with ULTRA_LINEAGE for the
+    // Release signing — reads FLEEZY_KEYSTORE / FLEEZY_KEYSTORE_PASSWORD /
+    // FLEEZY_KEY_ALIAS / FLEEZY_KEY_PASSWORD env vars (with FLEEZY_LINEAGE for the
     // rotation lineage). Falls back to the debug keystore when env vars are
     // missing so a fresh checkout still produces an installable APK in CI / dev.
     // See SECURITY.md for the rotation procedure.
@@ -74,12 +55,12 @@ android {
     // existing debug-key install without "INSTALL_FAILED_UPDATE_INCOMPATIBLE".
     signingConfigs {
         create("release") {
-            val ksPath = System.getenv("ULTRA_KEYSTORE")
+            val ksPath = System.getenv("FLEEZY_KEYSTORE")
             if (!ksPath.isNullOrBlank() && file(ksPath).exists()) {
                 storeFile = file(ksPath)
-                storePassword = System.getenv("ULTRA_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("ULTRA_KEY_ALIAS")
-                keyPassword = System.getenv("ULTRA_KEY_PASSWORD")
+                storePassword = System.getenv("FLEEZY_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("FLEEZY_KEY_ALIAS")
+                keyPassword = System.getenv("FLEEZY_KEY_PASSWORD")
                 // Rotation lineage is only natively supported by APK Signature
                 // Scheme v3 (Android 9 / API 28+). Pre-9 devices would need
                 // the OLD signer for v1/v2 — which we don't ship — so we
@@ -233,11 +214,11 @@ val resignRelease by tasks.registering {
     // that Gradle's configuration cache can't serialize — opt out explicitly.
     notCompatibleWithConfigurationCache("hand-rolled apksigner exec")
     doLast {
-        val ks = System.getenv("ULTRA_KEYSTORE") ?: return@doLast
-        val ksPwd = System.getenv("ULTRA_KEYSTORE_PASSWORD") ?: return@doLast
-        val alias = System.getenv("ULTRA_KEY_ALIAS") ?: return@doLast
-        val keyPwd = System.getenv("ULTRA_KEY_PASSWORD") ?: ksPwd
-        val lineage = System.getenv("ULTRA_LINEAGE") ?: return@doLast
+        val ks = System.getenv("FLEEZY_KEYSTORE") ?: return@doLast
+        val ksPwd = System.getenv("FLEEZY_KEYSTORE_PASSWORD") ?: return@doLast
+        val alias = System.getenv("FLEEZY_KEY_ALIAS") ?: return@doLast
+        val keyPwd = System.getenv("FLEEZY_KEY_PASSWORD") ?: ksPwd
+        val lineage = System.getenv("FLEEZY_LINEAGE") ?: return@doLast
 
         val apk = file("build/outputs/apk/release/app-release.apk")
         if (!apk.exists()) {

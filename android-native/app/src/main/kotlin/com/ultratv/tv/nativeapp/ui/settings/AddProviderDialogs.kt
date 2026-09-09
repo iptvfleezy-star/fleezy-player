@@ -50,6 +50,7 @@ fun AddProviderDialog(
     onDismiss: () -> Unit,
     onSubmit: () -> Unit,
     canSubmit: Boolean,
+    submitLabel: String? = null,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -73,7 +74,7 @@ fun AddProviderDialog(
                 Button(
                     onClick = onSubmit,
                     enabled = canSubmit,
-                ) { Text(S.addProviderAdd, fontSize = 15.sp) }
+                ) { Text(submitLabel ?: S.addProviderAdd, fontSize = 15.sp) }
                 Button(
                     onClick = onDismiss,
                     colors = ButtonDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
@@ -158,48 +159,10 @@ fun XtreamDialog(onDismiss: () -> Unit, onSubmit: (name: String, url: String, us
             )
         },
         canSubmit = canSubmit,
+        submitLabel = "Sign in",
     ) {
         FormField(S.fieldUsername, user, { user = it }, autoFocus = true)
         FormField(S.fieldPassword, pass, { pass = it }, password = true)
-    }
-}
-
-@OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
-@Composable
-fun M3uDialog(onDismiss: () -> Unit, onSubmit: (name: String, url: String) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
-    AddProviderDialog(
-        title = S.addProviderM3uTitle,
-        onDismiss = onDismiss,
-        onSubmit = { onSubmit(name, url) },
-        canSubmit = url.isNotBlank(),
-    ) {
-        FormField(S.fieldNameOptional, name, { name = it })
-        FormField(S.fieldPlaylistUrl, url, { url = it }, keyboardType = KeyboardType.Uri,
-            placeholder = "https://host.tld/playlist.m3u")
-    }
-}
-
-@OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
-@Composable
-fun StalkerDialog(onDismiss: () -> Unit, onSubmit: (name: String, url: String, mac: String) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    var mac by remember { mutableStateOf("") }
-    val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
-    AddProviderDialog(
-        title = S.addProviderStalkerTitle,
-        onDismiss = onDismiss,
-        onSubmit = { onSubmit(name, url, mac) },
-        canSubmit = url.isNotBlank() && mac.length in 12..17,
-    ) {
-        FormField(S.fieldNameOptional, name, { name = it })
-        FormField(S.fieldPortalUrl, url, { url = it }, keyboardType = KeyboardType.Uri,
-            placeholder = "http://host:8080")
-        FormField(S.fieldDeviceMac, mac, { mac = it.uppercase() },
-            placeholder = "00:1A:79:XX:XX:XX")
     }
 }
 

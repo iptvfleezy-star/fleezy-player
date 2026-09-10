@@ -1,5 +1,6 @@
 package com.ultratv.tv.nativeapp.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
@@ -22,9 +23,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -53,6 +57,30 @@ fun AddProviderDialog(
     submitLabel: String? = null,
     content: @Composable () -> Unit,
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val cancelFocusRequester = remember { FocusRequester() }
+
+    val dismissDialog = {
+        keyboardController?.hide()
+        focusManager.clearFocus(force = true)
+        onDismiss()
+    }
+    val submitDialog = {
+        keyboardController?.hide()
+        focusManager.clearFocus(force = true)
+        onSubmit()
+    }
+
+    // Fire TV's system keyboard can otherwise retain a text-field focus and
+    // make the sign-in overlay feel impossible to leave. Always give Back an
+    // explicit escape route, and start the dialog on a normal TV button rather
+    // than automatically opening the IME.
+    BackHandler(onBack = dismissDialog)
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        runCatching { cancelFocusRequester.requestFocus() }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -72,11 +100,12 @@ fun AddProviderDialog(
             content()
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 8.dp)) {
                 Button(
-                    onClick = onSubmit,
+                    onClick = submitDialog,
                     enabled = canSubmit,
                 ) { Text(submitLabel ?: S.addProviderAdd, fontSize = 15.sp) }
                 Button(
-                    onClick = onDismiss,
+                    onClick = dismissDialog,
+                    modifier = Modifier.focusRequester(cancelFocusRequester),
                     colors = ButtonDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
                 ) { Text(S.cancel, fontSize = 15.sp) }
             }
@@ -93,17 +122,9 @@ fun FormField(
     password: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text,
     placeholder: String? = null,
-    autoFocus: Boolean = false,
 ) {
     val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
-    val focusRequester = remember { androidx.compose.ui.focus.FocusRequester() }
-    // Grab focus the first time the field is shown when caller marks it as the
-    // dialog's primary input. D-pad would otherwise stay on whatever was
-    // focused behind the dialog, leaving the user unable to type.
-    androidx.compose.runtime.LaunchedEffect(autoFocus) {
-        if (autoFocus) runCatching { focusRequester.requestFocus() }
-    }
     Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
         Text(label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
         Box(
@@ -125,9 +146,7 @@ fun FormField(
                     keyboardType = if (password) KeyboardType.Password else keyboardType,
                 ),
                 interactionSource = interaction,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester),
+                modifier = Modifier.fillMaxWidth(),
                 decorationBox = { inner ->
                     if (value.isEmpty() && placeholder != null) {
                         Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
@@ -161,7 +180,7 @@ fun XtreamDialog(onDismiss: () -> Unit, onSubmit: (name: String, url: String, us
         canSubmit = canSubmit,
         submitLabel = "Sign in",
     ) {
-        FormField(S.fieldUsername, user, { user = it }, autoFocus = true)
+        FormField(S.fieldUsername, user, { user = it })
         FormField(S.fieldPassword, pass, { pass = it }, password = true)
     }
 }

@@ -321,6 +321,7 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
         val httpFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
+            .setUserAgent("IPTVSmartersPro")
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15_000)
             .setReadTimeoutMs(30_000)
@@ -360,12 +361,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                 androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
             )
             setEnableDecoderFallback(true)
-            // Fire TV MediaCodec implementations vary by model/Fire OS build.
-            // Synchronous queueing avoids vendor async-queue corruption while
-            // preserving hardware decoding. This is deliberately Amazon-only.
-            if (android.os.Build.MANUFACTURER.equals("Amazon", ignoreCase = true)) {
-                forceDisableMediaCodecAsynchronousQueueing()
-            }
         }
         ExoPlayer.Builder(context, renderers)
             .setLoadControl(loadControl)
@@ -377,6 +372,12 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                 .build()
             addListener(object : androidx.media3.common.Player.Listener {
                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    android.util.Log.e(
+                        "FleezyPlayer",
+                        "Playback error ${error.errorCodeName}; decoder=$decoderName; host=" +
+                            runCatching { android.net.Uri.parse(currentUrl).host }.getOrNull(),
+                        error,
+                    )
                     playbackError = when (error.errorCode) {
                         androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
                         androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ->

@@ -58,6 +58,9 @@ import com.ultratv.tv.nativeapp.ui.theme.UltraFonts
 import com.ultratv.tv.nativeapp.ui.theme.UltraTokens
 import com.ultratv.tv.nativeapp.ui.components.UltraIcon
 import com.ultratv.tv.nativeapp.ui.common.ChannelLogo
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Tivimate-inspired Live TV layout. Two stacked panes:
@@ -103,7 +106,15 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
     val channelFocusRequester = remember { FocusRequester() }
     val categoryListState = rememberLazyListState()
     var lastPositionedCategory by remember { mutableStateOf<String?>(null) }
+    var nowMs by remember { androidx.compose.runtime.mutableLongStateOf(System.currentTimeMillis()) }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowMs = System.currentTimeMillis()
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
 
     Row(Modifier.fillMaxSize().padding(top = 76.dp)) {
         // ---- Left pane: categories (200 dp — compact, focus-only) ----
@@ -297,6 +308,7 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                             active = c.id == activeChannelId,
                             nowProgramme = nn?.first,
                             nextProgramme = nn?.second,
+                            nowMs = nowMs,
                             onFocus = {
                                 activeChannelId = c.id
                                 vm.ensureShortEpg(c)
@@ -329,6 +341,7 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                 vm = vm,
                 nowProgramme = nowNext[active.id]?.first,
                 nextProgramme = nowNext[active.id]?.second,
+                nowMs = nowMs,
                 onWatch = {
                     val isLocked = "${active.providerId}:${active.remoteId}" in locked
                     if (isLocked) pinPrompt = active
@@ -362,6 +375,7 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                 vm.createMyGroup(name, ch)
                 groupDialogChannel = null
             },
+            onRename = { groupId, name -> vm.renameMyGroup(groupId, name) },
             onDelete = { groupId -> vm.deleteMyGroup(groupId) },
             onDismiss = { groupDialogChannel = null },
         )
@@ -420,16 +434,41 @@ private fun MyGroupsDialog(
     memberships: Set<MyGroupMember>,
     onToggle: (groupId: String, member: Boolean) -> Unit,
     onCreate: (name: String) -> Unit,
+    onRename: (groupId: String, name: String) -> Unit,
     onDelete: (groupId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var newGroupName by remember(channel.id) { mutableStateOf("") }
+    var pendingRename by remember(channel.id) { mutableStateOf<MyGroup?>(null) }
+    var renameText by remember(channel.id) { mutableStateOf("") }
     var pendingDelete by remember(channel.id) { mutableStateOf<MyGroup?>(null) }
     val memberGroupIds = remember(memberships, channel.providerId, channel.remoteId) {
         memberships.asSequence()
             .filter { it.providerId == channel.providerId && it.remoteId == channel.remoteId }
             .map { it.groupId }
             .toSet()
+    }
+
+    val renameTarget = pendingRename
+    if (renameTarget != null) {
+        com.ultratv.tv.nativeapp.ui.settings.AddProviderDialog(
+            title = "Rename group",
+            onDismiss = { pendingRename = null },
+            onSubmit = {
+                onRename(renameTarget.id, renameText.trim())
+                pendingRename = null
+            },
+            canSubmit = renameText.trim().isNotBlank() && renameText.trim() != renameTarget.name,
+            submitLabel = "Rename",
+        ) {
+            com.ultratv.tv.nativeapp.ui.settings.FormField(
+                label = "Group name",
+                value = renameText,
+                onChange = { renameText = it.take(40) },
+                placeholder = renameTarget.name,
+            )
+        }
+        return
     }
 
     val deleteTarget = pendingDelete
@@ -509,6 +548,24 @@ private fun MyGroupsDialog(
                             }
                         }
                         Card(
+                            onClick = {
+                                renameText = group.name
+                                pendingRename = group
+                            },
+                            shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
+                            colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
+                                containerColor = UltraTokens.Surface2,
+                                focusedContainerColor = UltraTokens.AccentSoft,
+                            ),
+                        ) {
+                            Text(
+                                "Rename",
+                                color = UltraTokens.Fg3,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 11.dp),
+                            )
+                        }
+                        Card(
                             onClick = { pendingDelete = group },
                             shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
                             colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
@@ -547,6 +604,7 @@ private fun ChannelRow(
     active: Boolean = false,
     nowProgramme: com.ultratv.tv.nativeapp.data.db.EpgEntity? = null,
     nextProgramme: com.ultratv.tv.nativeapp.data.db.EpgEntity? = null,
+    nowMs: Long = System.currentTimeMillis(),
     onFocus: () -> Unit = {},
     onClick: () -> Unit,
 ) {
@@ -608,11 +666,19 @@ private fun ChannelRow(
                 }
                 if (nowProgramme != null) {
                     Text(
-                        nowProgramme.title + (nextProgramme?.let { "  ·  Next: ${it.title}" } ?: ""),
+                        formatLiveTime(nowProgramme.startMs) + "  " + nowProgramme.title,
                         color = UltraTokens.Fg3,
                         fontSize = 11.sp,
                         maxLines = 1,
                     )
+                    if (nextProgramme != null) {
+                        Text(
+                            "Next " + formatLiveTime(nextProgramme.startMs) + "  ·  " + nextProgramme.title,
+                            color = UltraTokens.Fg4,
+                            fontSize = 10.sp,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
@@ -626,6 +692,7 @@ private fun LivePreviewPane(
     vm: LiveViewModel,
     nowProgramme: com.ultratv.tv.nativeapp.data.db.EpgEntity?,
     nextProgramme: com.ultratv.tv.nativeapp.data.db.EpgEntity?,
+    nowMs: Long,
     onWatch: () -> Unit,
     onManageGroups: () -> Unit,
     onPlayCatchup: (url: String, title: String) -> Unit = { _, _ -> },
@@ -753,6 +820,15 @@ private fun LivePreviewPane(
                             fontSize = 13.sp,
                         )
                         Spacer(Modifier.height(4.dp))
+                        if (nowProgramme != null) {
+                            Text(
+                                formatLiveTime(nowProgramme.startMs) + " – " + formatLiveTime(nowProgramme.endMs),
+                                color = Color.White.copy(alpha = 0.65f),
+                                fontSize = 12.sp,
+                                fontFamily = UltraFonts.Mono,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                        }
                         Text(
                             nowTitle,
                             color = Color.White,
@@ -760,8 +836,49 @@ private fun LivePreviewPane(
                             fontFamily = UltraFonts.Serif,
                             maxLines = 2,
                         )
+                        if (nowProgramme != null) {
+                            val duration = (nowProgramme.endMs - nowProgramme.startMs).coerceAtLeast(1L)
+                            val progress = ((nowMs - nowProgramme.startMs).toFloat() / duration.toFloat())
+                                .coerceIn(0f, 1f)
+                            Spacer(Modifier.height(10.dp))
+                            Box(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(3.dp)
+                                    .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(2.dp)),
+                            ) {
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth(progress)
+                                        .fillMaxHeight()
+                                        .background(UltraTokens.Accent, RoundedCornerShape(2.dp)),
+                                )
+                            }
+                        }
                     }
                 }
+            }
+        }
+
+        if (nextProgramme != null) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "UP NEXT",
+                    color = UltraTokens.Fg4,
+                    fontSize = 10.sp,
+                    letterSpacing = 1.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    formatLiveTime(nextProgramme.startMs) + "  " + nextTitle,
+                    color = UltraTokens.Fg2,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                )
             }
         }
 
@@ -1243,3 +1360,9 @@ private fun Hint(key: String, label: String) {
 
 private fun hueColor(seed: Int, sat: Float, light: Float): Color =
     com.ultratv.tv.nativeapp.ui.common.HueGradient.hsl(seed, sat, light)
+
+
+private val liveTimeFormatter = SimpleDateFormat("h:mm a", Locale.getDefault())
+private fun formatLiveTime(ms: Long): String = synchronized(liveTimeFormatter) {
+    liveTimeFormatter.format(Date(ms))
+}

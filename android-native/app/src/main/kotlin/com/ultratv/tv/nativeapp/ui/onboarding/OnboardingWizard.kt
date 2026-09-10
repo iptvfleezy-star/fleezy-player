@@ -183,7 +183,6 @@ fun OnboardingWizard(
                 label = "Username",
                 value = username.value,
                 onChange = { username.value = it },
-                autoFocus = true,
             )
             FormField(
                 label = "Password",

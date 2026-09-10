@@ -67,6 +67,11 @@ fun PreferencesSection(vm: AppViewModel = hiltViewModel()) {
             hint = "Match the TV's refresh rate to the stream (24/25/30/50/60). Reduces judder on motion.",
             value = p.autoFrameRate,
         ) { vm.setAutoFrameRate(it) }
+        SwitchRow(
+            title = "Software decoder",
+            hint = "Use the software video decoder for channels with colour glitches, smearing or hardware-decoder artifacts. Reopen playback after changing this.",
+            value = p.preferSoftwareDecoder,
+        ) { vm.setPreferSoftwareDecoder(it) }
         PrefRow(label = "Guide time offset (min)") {
             listOf(-120, -60, -30, 0, 30, 60, 120).forEach { off ->
                 ChoiceChip(

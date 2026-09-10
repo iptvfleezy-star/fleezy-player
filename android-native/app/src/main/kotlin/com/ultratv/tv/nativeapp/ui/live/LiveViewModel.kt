@@ -6,6 +6,9 @@ import com.ultratv.tv.nativeapp.data.db.CategoryEntity
 import com.ultratv.tv.nativeapp.data.db.ChannelEntity
 import com.ultratv.tv.nativeapp.data.prefs.HiddenCategoriesStore
 import com.ultratv.tv.nativeapp.data.prefs.LockedChannelsStore
+import com.ultratv.tv.nativeapp.data.prefs.MyGroup
+import com.ultratv.tv.nativeapp.data.prefs.MyGroupMember
+import com.ultratv.tv.nativeapp.data.prefs.MyGroupsStore
 import com.ultratv.tv.nativeapp.data.repo.CatalogRepository
 import com.ultratv.tv.nativeapp.data.repo.PlaybackContext
 import com.ultratv.tv.nativeapp.data.repo.ProviderRepository
@@ -31,6 +34,8 @@ import javax.inject.Inject
  */
 const val CATEGORY_ALL = "__all__"
 const val CATEGORY_FAVORITES = "__favorites__"
+const val CATEGORY_MY_GROUP_PREFIX = "__my_group__:"
+fun myGroupCategoryId(groupId: String): String = CATEGORY_MY_GROUP_PREFIX + groupId
 private const val CATEGORY_DEFAULT = "__default__"
 private const val MAX_BULK_EPG_CHANNELS = 500
 
@@ -41,6 +46,7 @@ class LiveViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val hiddenStore: HiddenCategoriesStore,
     private val lockedStore: LockedChannelsStore,
+    private val myGroupsStore: MyGroupsStore,
     private val playback: PlaybackContext,
     private val epgDaoArg: com.ultratv.tv.nativeapp.data.db.EpgDao,
     private val zapQueue: com.ultratv.tv.nativeapp.data.repo.LivePlaybackQueue,
@@ -210,6 +216,18 @@ class LiveViewModel @Inject constructor(
         .distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val myGroups: StateFlow<List<MyGroup>> =
+        combine(providers, myGroupsStore.groups) { ps, groups ->
+            val pid = (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id
+            if (pid == null) emptyList() else groups.filter { it.providerId == pid }
+        }
+            .distinctUntilChanged()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val myGroupMembers: StateFlow<Set<MyGroupMember>> =
+        myGroupsStore.members
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
     val categories: StateFlow<List<CategoryEntity>> =
         combine(providers, hiddenStore.hidden) { ps, hidden -> ps to hidden }
             .flatMapLatest { (ps, hidden) ->
@@ -247,6 +265,30 @@ class LiveViewModel @Inject constructor(
                         hiddenStore.keyFor("LIVE", pid, cid) !in hidden
                     }
                 }
+            } else if (cat.startsWith(CATEGORY_MY_GROUP_PREFIX)) {
+                val groupId = cat.removePrefix(CATEGORY_MY_GROUP_PREFIX)
+                myGroupsStore.members.map { memberships ->
+                    val remoteIds = memberships.asSequence()
+                        .filter { it.providerId == pid && it.groupId == groupId }
+                        .map { it.remoteId }
+                        .distinct()
+                        .toList()
+                    if (remoteIds.isEmpty()) {
+                        emptyList()
+                    } else {
+                        remoteIds.chunked(500)
+                            .flatMap { ids -> channelDao.byRemoteIds(pid, ids) }
+                            .filter { ch ->
+                                val cid = ch.categoryId ?: return@filter true
+                                hiddenStore.keyFor("LIVE", pid, cid) !in hidden
+                            }
+                            .sortedWith(
+                                compareBy<ChannelEntity> { if (it.userPosition == 0) 1 else 0 }
+                                    .thenBy { it.userPosition }
+                                    .thenBy { it.name.lowercase() },
+                            )
+                    }
+                }
             } else {
                 val base = if (cat == CATEGORY_ALL) {
                     catalog.channels(pid).map { list ->
@@ -270,6 +312,33 @@ class LiveViewModel @Inject constructor(
 
     fun setQuery(q: String) { _query.value = q }
     fun selectCategory(remoteId: String) { _selectedCategory.value = remoteId }
+
+    fun setMyGroupMembership(groupId: String, channel: ChannelEntity, member: Boolean) {
+        viewModelScope.launch {
+            myGroupsStore.setMembership(groupId, channel.providerId, channel.remoteId, member)
+        }
+    }
+
+    fun createMyGroup(name: String, channel: ChannelEntity) {
+        viewModelScope.launch {
+            val group = myGroupsStore.create(channel.providerId, name) ?: return@launch
+            myGroupsStore.setMembership(group.id, channel.providerId, channel.remoteId, true)
+            _selectedCategory.value = myGroupCategoryId(group.id)
+        }
+    }
+
+    fun renameMyGroup(groupId: String, name: String) {
+        viewModelScope.launch { myGroupsStore.rename(groupId, name) }
+    }
+
+    fun deleteMyGroup(groupId: String) {
+        viewModelScope.launch {
+            myGroupsStore.delete(groupId)
+            if (_selectedCategory.value == myGroupCategoryId(groupId)) {
+                _selectedCategory.value = CATEGORY_FAVORITES
+            }
+        }
+    }
 
     /**
      * Full programme list for the channel the user is hovering, used by the

@@ -77,6 +77,15 @@ interface ChannelDao {
     @Query("SELECT * FROM channel WHERE providerId = :pid AND remoteId = :rid LIMIT 1")
     suspend fun byRemoteId(pid: Long, rid: String): ChannelEntity?
 
+    @Query("""
+        SELECT * FROM channel
+        WHERE providerId = :pid AND remoteId IN (:remoteIds)
+        ORDER BY CASE WHEN userPosition = 0 THEN 1 ELSE 0 END,
+                 userPosition,
+                 name COLLATE NOCASE ASC
+    """)
+    suspend fun byRemoteIds(pid: Long, remoteIds: List<String>): List<ChannelEntity>
+
     @Query("SELECT * FROM channel WHERE providerId = :pid AND name LIKE '%' || :q || '%' ORDER BY name LIMIT 50")
     suspend fun search(pid: Long, q: String): List<ChannelEntity>
 

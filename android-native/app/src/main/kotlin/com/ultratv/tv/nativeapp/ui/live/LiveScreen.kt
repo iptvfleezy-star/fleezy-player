@@ -44,6 +44,8 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.ultratv.tv.nativeapp.data.db.ChannelEntity
+import com.ultratv.tv.nativeapp.data.prefs.MyGroup
+import com.ultratv.tv.nativeapp.data.prefs.MyGroupMember
 import com.ultratv.tv.nativeapp.ui.common.prettyCategoryName
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.FlowRow
@@ -78,11 +80,15 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
     val cats by vm.categories.collectAsState()
     val chans by vm.channels.collectAsState()
     val selected by vm.selectedCategory.collectAsState()
+    val myGroups by vm.myGroups.collectAsState()
+    val myGroupMembers by vm.myGroupMembers.collectAsState()
     val locked by vm.lockedChannels.collectAsState()
     val nowNext by vm.nowNext.collectAsState()
     val currentPlayback by vm.currentPlayback.collectAsState()
     // Channel awaiting PIN unlock; non-null while the dialog is up.
     var pinPrompt by remember { mutableStateOf<com.ultratv.tv.nativeapp.data.db.ChannelEntity?>(null) }
+    // Channel whose personal group memberships are being edited.
+    var groupDialogChannel by remember { mutableStateOf<ChannelEntity?>(null) }
     // Currently focused channel for the preview pane (defaults to the first one).
     // Reset the preview cursor when either the category or its result size
     // changes. Two categories can contain the same number of channels, and
@@ -135,6 +141,14 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                         onClick = { vm.selectCategory(CATEGORY_FAVORITES) },
                     )
                 }
+                items(myGroups, key = { "my-group:" + it.id }) { group ->
+                    val categoryId = myGroupCategoryId(group.id)
+                    CategoryRow(
+                        label = "◆  " + group.name,
+                        selected = selected == categoryId,
+                        onClick = { vm.selectCategory(categoryId) },
+                    )
+                }
                 items(cats, key = { it.id }) { cat ->
                     CategoryRow(
                         label = prettyCategoryName(cat.name) + if (cat.locked) "  🔒" else "",
@@ -162,22 +176,31 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                 .padding(top = 20.dp, start = 0.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
+            val selectedGroup = myGroups.firstOrNull { myGroupCategoryId(it.id) == selected }
             val title = when (selected) {
                 CATEGORY_ALL -> S.liveAllChannels
                 CATEGORY_FAVORITES -> S.favorites
-                else -> prettyCategoryName(cats.firstOrNull { it.remoteId == selected }?.name ?: "")
+                else -> selectedGroup?.name
+                    ?: prettyCategoryName(cats.firstOrNull { it.remoteId == selected }?.name ?: "")
             }
 
             // Keep the selected category visible in the left rail, including
             // categories far below the initial Fire TV viewport.
-            LaunchedEffect(selected, cats) {
+            LaunchedEffect(selected, cats, myGroups) {
                 val index = when (selected) {
                     CATEGORY_ALL -> 0
                     CATEGORY_FAVORITES -> 1
-                    else -> cats.indexOfFirst { it.remoteId == selected }
-                        .takeIf { it >= 0 }
-                        ?.plus(2)
-                        ?: -1
+                    else -> {
+                        val groupIndex = myGroups.indexOfFirst { myGroupCategoryId(it.id) == selected }
+                        if (groupIndex >= 0) {
+                            groupIndex + 2
+                        } else {
+                            cats.indexOfFirst { it.remoteId == selected }
+                                .takeIf { it >= 0 }
+                                ?.plus(2 + myGroups.size)
+                                ?: -1
+                        }
+                    }
                 }
                 if (index >= 0) categoryListState.scrollToItem(index)
             }
@@ -306,6 +329,7 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                     if (isLocked) pinPrompt = active
                     else vm.resolveAndPlay(active, onPlay)
                 },
+                onManageGroups = { groupDialogChannel = active },
                 onPlayCatchup = { url, title -> onPlay(url, title) },
             )
         }
@@ -320,6 +344,20 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                 vm.resolveAndPlay(ch, onPlay)
             },
             onCancel = { pinPrompt = null },
+        )
+    }
+
+    groupDialogChannel?.let { ch ->
+        MyGroupsDialog(
+            channel = ch,
+            groups = myGroups,
+            memberships = myGroupMembers,
+            onToggle = { groupId, member -> vm.setMyGroupMembership(groupId, ch, member) },
+            onCreate = { name ->
+                vm.createMyGroup(name, ch)
+                groupDialogChannel = null
+            },
+            onDismiss = { groupDialogChannel = null },
         )
     }
 }
@@ -365,6 +403,86 @@ private fun CategoryRow(label: String, selected: Boolean, onClick: () -> Unit) {
                     .background(UltraTokens.Accent, RoundedCornerShape(2.dp))
             )
         }
+    }
+}
+
+@OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
+@Composable
+private fun MyGroupsDialog(
+    channel: ChannelEntity,
+    groups: List<MyGroup>,
+    memberships: Set<MyGroupMember>,
+    onToggle: (groupId: String, member: Boolean) -> Unit,
+    onCreate: (name: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var newGroupName by remember(channel.id) { mutableStateOf("") }
+    val memberGroupIds = remember(memberships, channel.providerId, channel.remoteId) {
+        memberships.asSequence()
+            .filter { it.providerId == channel.providerId && it.remoteId == channel.remoteId }
+            .map { it.groupId }
+            .toSet()
+    }
+
+    com.ultratv.tv.nativeapp.ui.settings.AddProviderDialog(
+        title = "My Groups",
+        onDismiss = onDismiss,
+        onSubmit = { onCreate(newGroupName.trim()) },
+        canSubmit = newGroupName.isNotBlank(),
+        submitLabel = "Create group",
+    ) {
+        Text(
+            "Choose which personal groups contain \"${channel.name}\".",
+            color = UltraTokens.Fg3,
+            fontSize = 13.sp,
+        )
+        if (groups.isEmpty()) {
+            Text(
+                "No groups yet. Create one below and this channel will be added automatically.",
+                color = UltraTokens.Fg4,
+                fontSize = 12.sp,
+            )
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                groups.forEach { group ->
+                    val isMember = group.id in memberGroupIds
+                    Card(
+                        onClick = { onToggle(group.id, !isMember) },
+                        shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
+                        colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
+                            containerColor = if (isMember) UltraTokens.AccentSoft else UltraTokens.Surface2,
+                            focusedContainerColor = UltraTokens.Accent,
+                            focusedContentColor = Color.White,
+                        ),
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                if (isMember) "✓" else "○",
+                                color = if (isMember) UltraTokens.Accent else UltraTokens.Fg4,
+                                fontSize = 15.sp,
+                                modifier = Modifier.width(28.dp),
+                            )
+                            Text(
+                                group.name,
+                                color = if (isMember) UltraTokens.Fg else UltraTokens.Fg2,
+                                fontSize = 14.sp,
+                                fontWeight = if (isMember) FontWeight.SemiBold else FontWeight.Normal,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        com.ultratv.tv.nativeapp.ui.settings.FormField(
+            label = "New group name",
+            value = newGroupName,
+            onChange = { newGroupName = it.take(40) },
+            placeholder = "e.g. Sports",
+        )
     }
 }
 
@@ -458,6 +576,7 @@ private fun LivePreviewPane(
     nowProgramme: com.ultratv.tv.nativeapp.data.db.EpgEntity?,
     nextProgramme: com.ultratv.tv.nativeapp.data.db.EpgEntity?,
     onWatch: () -> Unit,
+    onManageGroups: () -> Unit,
     onPlayCatchup: (url: String, title: String) -> Unit = { _, _ -> },
 ) {
     val nowTitle = nowProgramme?.title ?: "Now playing"
@@ -597,12 +716,29 @@ private fun LivePreviewPane(
 
         Row(
             Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             com.ultratv.tv.nativeapp.ui.common.FavoriteButton(
                 kind = "LIVE",
                 remoteId = channel.remoteId,
             )
+            Card(
+                onClick = onManageGroups,
+                shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
+                colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
+                    containerColor = UltraTokens.Surface2,
+                    focusedContainerColor = UltraTokens.AccentSoft,
+                ),
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("+", color = UltraTokens.Accent, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(7.dp))
+                    Text("My Groups", color = UltraTokens.Fg2, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
+            }
         }
 
         // TiviMate-style full-day schedule of the focused channel.

@@ -131,16 +131,25 @@ class GuideGridViewModel @Inject constructor(
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
-    fun playChannel(channel: ChannelEntity) {
-        zapQueue.set(channels.value, channel)
-        playback.set(com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item(
-            providerId = channel.providerId,
-            kind = "LIVE",
-            remoteId = channel.remoteId,
-            title = channel.name,
-            poster = channel.logo,
-            streamUrl = channel.streamUrl,
-        ))
+    fun playChannel(
+        channel: ChannelEntity,
+        onReady: (url: String, title: String) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
+            zapQueue.set(channels.value, channel)
+            playback.set(
+                com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item(
+                    providerId = channel.providerId,
+                    kind = "LIVE",
+                    remoteId = channel.remoteId,
+                    title = channel.name,
+                    poster = channel.logo,
+                    streamUrl = resolved,
+                )
+            )
+            onReady(resolved, channel.name)
+        }
     }
 
     /** Pull a fresh xmltv into the EPG table. */
@@ -175,7 +184,7 @@ class GuideGridViewModel @Inject constructor(
 @OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
 @Composable
 fun GuideGridScreen(
-    onPlayChannel: (ChannelEntity) -> Unit,
+    onPlayChannel: (String, String) -> Unit,
     vm: GuideGridViewModel = hiltViewModel(),
 ) {
     val channels by vm.channels.collectAsState()
@@ -348,8 +357,7 @@ fun GuideGridScreen(
                         nowMs = now,
                         hScroll = hScroll,
                         onPlay = {
-                            vm.playChannel(c)
-                            onPlayChannel(c)
+                            vm.playChannel(c, onPlayChannel)
                         },
                     )
                 }

@@ -28,8 +28,10 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.SurfaceDefaults
 import com.ultratv.tv.nativeapp.data.prefs.SidebarPosition
+import com.ultratv.tv.nativeapp.data.db.ChannelDao
 import com.ultratv.tv.nativeapp.data.prefs.UserPreferencesStore
 import com.ultratv.tv.nativeapp.data.repo.HistoryRepository
+import com.ultratv.tv.nativeapp.data.repo.LivePlaybackQueue
 import com.ultratv.tv.nativeapp.data.repo.PlaybackContext
 import com.ultratv.tv.nativeapp.data.repo.ProviderRepository
 import com.ultratv.tv.nativeapp.data.sync.SyncScheduler
@@ -77,6 +79,8 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var providerRepo: ProviderRepository
     @Inject lateinit var historyRepo: HistoryRepository
     @Inject lateinit var playback: PlaybackContext
+    @Inject lateinit var channelDao: ChannelDao
+    @Inject lateinit var zapQueue: LivePlaybackQueue
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -138,16 +142,72 @@ class MainActivity : ComponentActivity() {
             }
 
             if (prefs.autoPlayLastOnLaunch) {
-                val firstProvider = providerRepo.observeProviders().first().firstOrNull()
-                if (firstProvider != null) {
-                    val last = historyRepo.recent(firstProvider.id, 1).first().firstOrNull()
+                val providers = providerRepo.observeProviders().first()
+                val activeProvider = providers.firstOrNull { it.active } ?: providers.firstOrNull()
+                if (activeProvider != null) {
+                    val recent = historyRepo.recent(activeProvider.id, 20).first()
+                    val last = recent.firstOrNull()
                     if (last != null) {
-                        playback.set(PlaybackContext.Item(
-                            providerId = last.providerId, kind = last.kind, remoteId = last.remoteId,
-                            title = last.title, poster = last.poster, streamUrl = last.streamUrl,
-                            parentRemoteId = last.parentRemoteId,
-                        ))
-                        StartupNav.pending.value = StartupNav.Pending(last.streamUrl, last.title)
+                        if (last.kind == "LIVE") {
+                            // Reconnect history to the current catalog. Provider stream
+                            // URLs can change between launches, and the player needs a
+                            // fresh zap queue for UP/DOWN to work after auto-resume.
+                            val current = channelDao.byRemoteId(activeProvider.id, last.remoteId)
+                            if (current != null) {
+                                val queue = recent
+                                    .asSequence()
+                                    .filter { it.kind == "LIVE" }
+                                    .distinctBy { it.remoteId }
+                                    .mapNotNull { item ->
+                                        channelDao.byRemoteId(activeProvider.id, item.remoteId)
+                                    }
+                                    .toList()
+                                    .ifEmpty { listOf(current) }
+                                val resolved = providerRepo.resolvePlayUrl(current.id, current.streamUrl)
+                                zapQueue.set(queue, current)
+                                playback.set(
+                                    PlaybackContext.Item(
+                                        providerId = current.providerId,
+                                        kind = "LIVE",
+                                        remoteId = current.remoteId,
+                                        title = current.name,
+                                        poster = current.logo,
+                                        streamUrl = resolved,
+                                    )
+                                )
+                                StartupNav.pending.value = StartupNav.Pending(resolved, current.name)
+                            } else {
+                                // The saved channel may have been removed from the latest
+                                // playlist. Preserve legacy behavior as a best-effort fallback.
+                                zapQueue.clear()
+                                playback.set(
+                                    PlaybackContext.Item(
+                                        providerId = last.providerId,
+                                        kind = last.kind,
+                                        remoteId = last.remoteId,
+                                        title = last.title,
+                                        poster = last.poster,
+                                        streamUrl = last.streamUrl,
+                                        parentRemoteId = last.parentRemoteId,
+                                    )
+                                )
+                                StartupNav.pending.value = StartupNav.Pending(last.streamUrl, last.title)
+                            }
+                        } else {
+                            zapQueue.clear()
+                            playback.set(
+                                PlaybackContext.Item(
+                                    providerId = last.providerId,
+                                    kind = last.kind,
+                                    remoteId = last.remoteId,
+                                    title = last.title,
+                                    poster = last.poster,
+                                    streamUrl = last.streamUrl,
+                                    parentRemoteId = last.parentRemoteId,
+                                )
+                            )
+                            StartupNav.pending.value = StartupNav.Pending(last.streamUrl, last.title)
+                        }
                     }
                 }
             }
@@ -297,7 +357,7 @@ private fun NavGraph(nav: androidx.navigation.NavHostController) {
         }
         composable(Routes.GUIDE) {
             GuideGridScreen(
-                onPlayChannel = { ch -> nav.navigate(Routes.player(ch.streamUrl, ch.name)) },
+                onPlayChannel = { url, title -> nav.navigate(Routes.player(url, title)) },
             )
         }
         composable("categories") { CategoriesScreen() }

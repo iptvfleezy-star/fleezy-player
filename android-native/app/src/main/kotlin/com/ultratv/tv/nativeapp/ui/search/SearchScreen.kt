@@ -69,6 +69,7 @@ class SearchViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val history: com.ultratv.tv.nativeapp.data.prefs.SearchHistoryStore,
     private val playback: com.ultratv.tv.nativeapp.data.repo.PlaybackContext,
+    private val zapQueue: com.ultratv.tv.nativeapp.data.repo.LivePlaybackQueue,
 ) : ViewModel() {
     private val _q = MutableStateFlow("")
     val query: StateFlow<String> = _q.asStateFlow()
@@ -102,15 +103,26 @@ class SearchViewModel @Inject constructor(
     fun clear() { setQuery("") }
     fun clearHistory() { viewModelScope.launch { history.clear() } }
 
-    fun playChannel(channel: ChannelEntity) {
-        playback.set(com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item(
-            providerId = channel.providerId,
-            kind = "LIVE",
-            remoteId = channel.remoteId,
-            title = channel.name,
-            poster = channel.logo,
-            streamUrl = channel.streamUrl,
-        ))
+    fun playChannel(
+        channel: ChannelEntity,
+        onReady: (url: String, title: String) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
+            val queue = results.value.channels.ifEmpty { listOf(channel) }
+            zapQueue.set(queue, channel)
+            playback.set(
+                com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item(
+                    providerId = channel.providerId,
+                    kind = "LIVE",
+                    remoteId = channel.remoteId,
+                    title = channel.name,
+                    poster = channel.logo,
+                    streamUrl = resolved,
+                )
+            )
+            onReady(resolved, channel.name)
+        }
     }
 }
 
@@ -354,8 +366,7 @@ fun SearchScreen(
             if (showAll || activeFilter == 3) {
                 ResultSection("Live channels", r.channels, total) { c ->
                     ChannelResultCard(c, onClick = {
-                        vm.playChannel(c)
-                        onOpenChannel(c.streamUrl, c.name)
+                        vm.playChannel(c, onOpenChannel)
                     })
                 }
             }

@@ -53,7 +53,13 @@ class SeriesListViewModel @Inject constructor(
                 ?: providers.value.firstOrNull()?.id
                 ?: return@launch
             _refreshing.value = true
-            try { providerRepo.syncAll(pid) } finally { _refreshing.value = false }
+            try {
+                val active = providerRepo.byId(pid)
+                if (active?.kind == "XTREAM") providerRepo.syncXtreamLibraryOnly(pid)
+                else providerRepo.syncAll(pid)
+            } finally {
+                _refreshing.value = false
+            }
         }
     }
 

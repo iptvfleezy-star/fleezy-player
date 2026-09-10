@@ -268,8 +268,13 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
 
             if (chans.isEmpty()) {
                 Text(
-                    S.liveNoChannelsInCategory,
+                    if (selected.startsWith(CATEGORY_MY_GROUP_PREFIX)) {
+                        "No channels in this group. Add channels using My Groups."
+                    } else {
+                        S.liveNoChannelsInCategory
+                    },
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 24.dp),
                 )
             } else {
                 LazyColumn(

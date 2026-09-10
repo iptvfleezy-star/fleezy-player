@@ -17,13 +17,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -53,6 +56,7 @@ fun PosterCard(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
+    var posterFailed by remember(poster) { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (focused) 1.08f else 1.0f,
         animationSpec = tween(durationMillis = 280),
@@ -83,8 +87,14 @@ fun PosterCard(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                if (poster != null) {
-                    AsyncImage(model = poster, contentDescription = title, modifier = Modifier.fillMaxSize())
+                if (!poster.isNullOrBlank() && !posterFailed) {
+                    AsyncImage(
+                        model = poster,
+                        contentDescription = title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onError = { posterFailed = true },
+                    )
                 } else {
                     LetterAvatar(text = title, fontSize = 48.sp, modifier = Modifier.fillMaxSize())
                 }

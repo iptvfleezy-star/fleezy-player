@@ -1,5 +1,6 @@
 package com.ultratv.tv.nativeapp.ui.series
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,9 +17,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,21 +58,39 @@ fun SeriesDetailScreen(
     }
     val T = UltraTokens
     val F = UltraFonts
+    var posterFailed by remember(series.id, series.poster) { mutableStateOf(false) }
     Column(
         Modifier.fillMaxSize().padding(start = 140.dp, end = 80.dp, top = 110.dp),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(50.dp)) {
             Box(
-                Modifier.width(320.dp).height(480.dp).clip(RoundedCornerShape(18.dp)),
+                Modifier
+                    .width(320.dp)
+                    .height(480.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(T.Surface2),
                 contentAlignment = Alignment.Center,
             ) {
-                if (series.poster != null) AsyncImage(model = series.poster, contentDescription = series.name, modifier = Modifier.fillMaxSize())
-                else Text("📺", fontSize = 80.sp)
+                if (!series.poster.isNullOrBlank() && !posterFailed) {
+                    AsyncImage(
+                        model = series.poster,
+                        contentDescription = series.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        onError = { posterFailed = true },
+                    )
+                } else {
+                    com.ultratv.tv.nativeapp.ui.common.LetterAvatar(
+                        text = series.name,
+                        fontSize = 72.sp,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(0.dp)) {
                 Text(
-                    "SÉRIE${series.year?.let { " · $it" } ?: ""}",
+                    "SERIES",
                     color = T.Accent,
                     fontSize = 13.sp,
                     letterSpacing = 2.3.sp,
@@ -87,14 +110,14 @@ fun SeriesDetailScreen(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     series.rating?.let {
                         Text(
-                            "${(it * 10).toInt()}% match",
+                            "★ %.1f".format(it),
                             color = T.Accent,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }
                     series.year?.let { Text("$it", color = T.Fg2, fontSize = 13.sp) }
-                    if (loading) Text("Chargement épisodes…", color = T.Fg3, fontSize = 12.sp)
+                    if (loading) Text("Loading episodes…", color = T.Fg3, fontSize = 12.sp)
                 }
                 Spacer(Modifier.height(20.dp))
                 series.plot?.let {

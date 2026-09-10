@@ -1,5 +1,6 @@
 package com.ultratv.tv.nativeapp.ui.movies
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -107,6 +109,7 @@ fun MovieDetailScreen(
     }
     val T = com.ultratv.tv.nativeapp.ui.theme.UltraTokens
     val F = com.ultratv.tv.nativeapp.ui.theme.UltraFonts
+    var posterFailed by remember(movie.id, movie.poster) { mutableStateOf(false) }
     Row(
         Modifier
             .fillMaxSize()
@@ -117,15 +120,29 @@ fun MovieDetailScreen(
             Modifier
                 .width(320.dp)
                 .height(480.dp)
-                .clip(RoundedCornerShape(18.dp)),
+                .clip(RoundedCornerShape(18.dp))
+                .background(T.Surface2),
             contentAlignment = Alignment.Center,
         ) {
-            if (movie.poster != null) AsyncImage(model = movie.poster, contentDescription = movie.name, modifier = Modifier.fillMaxSize())
-            else Text("🎬", fontSize = 80.sp)
+            if (!movie.poster.isNullOrBlank() && !posterFailed) {
+                AsyncImage(
+                    model = movie.poster,
+                    contentDescription = movie.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    onError = { posterFailed = true },
+                )
+            } else {
+                com.ultratv.tv.nativeapp.ui.common.LetterAvatar(
+                    text = movie.name,
+                    fontSize = 72.sp,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
         Column(verticalArrangement = Arrangement.spacedBy(0.dp), modifier = Modifier.fillMaxSize()) {
             Text(
-                "FILM · ${movie.year ?: ""}".trim().removeSuffix("·").trim(),
+                "MOVIE",
                 color = T.Accent,
                 fontSize = 13.sp,
                 letterSpacing = 2.3.sp,
@@ -145,7 +162,7 @@ fun MovieDetailScreen(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 movie.rating?.let {
                     Text(
-                        "${(it * 10).toInt()}% match",
+                        "★ %.1f".format(it),
                         color = T.Accent,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,

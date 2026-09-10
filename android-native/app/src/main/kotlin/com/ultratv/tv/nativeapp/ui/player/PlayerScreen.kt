@@ -268,6 +268,8 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     var decoderName by remember { mutableStateOf("—") }
     var droppedFramesTotal by remember { mutableIntStateOf(0) }
     var displayModeLabel by remember { mutableStateOf("—") }
+    var measuredFrameRate by remember { mutableFloatStateOf(0f) }
+    val cadenceEstimator = remember { LiveCadenceEstimator() }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
 
     BackHandler {
@@ -354,13 +356,16 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(context)
             .setDataSourceFactory(routingFactory)
         val renderers = androidx.media3.exoplayer.DefaultRenderersFactory(context).apply {
-            // Keep device hardware codecs first. Extension decoders remain
-            // available where bundled, and Media3 may fall back to another
-            // decoder if the preferred codec cannot initialize cleanly.
             setExtensionRendererMode(
                 androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
             )
             setEnableDecoderFallback(true)
+            // Fire TV MediaCodec implementations vary by model/Fire OS build.
+            // Synchronous queueing avoids vendor async-queue corruption while
+            // preserving hardware decoding. This is deliberately Amazon-only.
+            if (android.os.Build.MANUFACTURER.equals("Amazon", ignoreCase = true)) {
+                forceDisableMediaCodecAsynchronousQueueing()
+            }
         }
         ExoPlayer.Builder(context, renderers)
             .setLoadControl(loadControl)
@@ -388,8 +393,7 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                 override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
                     val act = (context as? android.app.Activity) ?: return
                     val display = act.windowManager.defaultDisplay ?: return
-                    val currentMode = display.mode
-                    displayModeLabel = formatDisplayMode(currentMode)
+                    displayModeLabel = formatDisplayMode(display.mode)
                     if (!playbackPrefs.autoFrameRate) return
 
                     val fmt = currentTracks.groups
@@ -399,43 +403,10 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                                 .firstOrNull { g.isTrackSelected(it) }
                                 ?.let { g.getTrackFormat(it) }
                         }
-                    val fps = fmt?.frameRate ?: return
-                    if (fps <= 0f) return
-
-                    // Never trade output resolution for refresh-rate matching.
-                    // The previous matcher searched every supported display mode,
-                    // so a 4K Fire TV output could accidentally be switched to a
-                    // 1080p/720p mode merely because its refresh rate was a clean
-                    // multiple of the stream FPS. That makes a genuine 1080p feed
-                    // look softer and can also introduce an unnecessary HDMI mode
-                    // change. Restrict candidates to the current output resolution.
-                    val sameResolution = display.supportedModes.filter {
-                        it.physicalWidth == currentMode.physicalWidth &&
-                            it.physicalHeight == currentMode.physicalHeight
-                    }
-                    val candidates = sameResolution.ifEmpty { listOf(currentMode) }
-                    val exactMultiples = candidates.filter { mode ->
-                        val ratio = mode.refreshRate / fps
-                        val nearest = kotlin.math.round(ratio)
-                        nearest >= 1f && kotlin.math.abs(ratio - nearest) <= 0.02f
-                    }
-                    // When both 30 and 60 Hz are valid for a 30-fps source,
-                    // prefer 60 Hz rather than dropping the display to 30 Hz.
-                    // This preserves smoother motion/UI while still presenting
-                    // each video frame for an exact integer number of refreshes.
-                    val target = exactMultiples.maxByOrNull { it.refreshRate }
-                        ?: candidates.minByOrNull { mode ->
-                            val ratio = (mode.refreshRate / fps).coerceAtLeast(1f)
-                            val nearest = kotlin.math.round(ratio)
-                            kotlin.math.abs(mode.refreshRate - fps * nearest)
-                        }
-                        ?: currentMode
-                    displayModeLabel = formatDisplayMode(target)
-                    val lp = act.window.attributes
-                    if (lp.preferredDisplayModeId != target.modeId) {
-                        lp.preferredDisplayModeId = target.modeId
-                        act.window.attributes = lp
-                    }
+                    val fps = fmt?.frameRate?.takeIf { it > 0f }
+                        ?: measuredFrameRate.takeIf { it > 0f }
+                        ?: return
+                    displayModeLabel = applyCadenceMode(act, normalizeBroadcastRate(fps))
                 }
 
                 override fun onPlaybackStateChanged(state: Int) {
@@ -462,11 +433,37 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                     droppedFramesTotal += droppedFrames
                 }
             })
+            setVideoFrameMetadataListener { presentationTimeUs, _, format, mediaFormat ->
+                if (!isLive) return@setVideoFrameMetadataListener
+
+                val formatRate = format.frameRate.takeIf { it > 0f }
+                val mediaFormatRate = mediaFormat?.let { mf ->
+                    runCatching {
+                        mf.getFloat(android.media.MediaFormat.KEY_FRAME_RATE)
+                    }.getOrNull()?.takeIf { it > 0f }
+                        ?: runCatching {
+                            mf.getInteger(android.media.MediaFormat.KEY_FRAME_RATE).toFloat()
+                        }.getOrNull()?.takeIf { it > 0f }
+                }
+                val inferredRate = cadenceEstimator.sample(presentationTimeUs)
+                val resolved = formatRate ?: mediaFormatRate ?: inferredRate
+                if (resolved != null && resolved > 0f) {
+                    val normalized = normalizeBroadcastRate(resolved)
+                    if (kotlin.math.abs(normalized - measuredFrameRate) > 0.05f) {
+                        measuredFrameRate = normalized
+                        if (playbackPrefs.autoFrameRate) {
+                            (context as? Activity)?.let { act ->
+                                displayModeLabel = applyCadenceMode(act, normalized)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
     var stats by remember { mutableStateOf(StreamStats()) }
-    LaunchedEffect(statsOpen, isLive, chromeVisible, decoderName, droppedFramesTotal, displayModeLabel) {
+    LaunchedEffect(statsOpen, isLive, chromeVisible, decoderName, droppedFramesTotal, displayModeLabel, measuredFrameRate) {
         if (!statsOpen && !(isLive && chromeVisible)) return@LaunchedEffect
         while (true) {
             stats = StreamStats.read(
@@ -474,6 +471,7 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                 decoderName = decoderName,
                 droppedFrames = droppedFramesTotal,
                 displayMode = displayModeLabel,
+                measuredFrameRate = measuredFrameRate,
             )
             delay(1_000)
         }
@@ -499,11 +497,8 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             playbackError = null
             decoderName = "—"
             droppedFramesTotal = 0
-            // IPTV channels regularly switch codec parameters, resolution and
-            // colour metadata between zaps. Explicitly stop/clear the previous
-            // Live source before preparing the next one so MediaCodec starts
-            // from a clean stream state instead of carrying stale reference
-            // frames across a channel change.
+            measuredFrameRate = 0f
+            cadenceEstimator.reset()
             if (isLive && player.mediaItemCount > 0) {
                 player.stop()
                 player.clearMediaItems()
@@ -589,10 +584,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     ) {
         AndroidView(
             factory = { ctx ->
-                // Keep the TextureView compatibility path: SurfaceView produced
-                // black video on the Fire TV Compose hierarchy during hardware
-                // testing. The quality fixes above deliberately avoid undoing
-                // that known-good rendering workaround.
                 (android.view.LayoutInflater.from(ctx).inflate(
                     com.ultratv.tv.nativeapp.R.layout.fleezy_player_view,
                     null,
@@ -1001,9 +992,6 @@ private enum class AspectMode(val label: String, val resizeMode: Int) {
     FixedHeight("4:3", androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT),
 }
 
-private fun formatDisplayMode(mode: android.view.Display.Mode): String =
-    "${mode.physicalWidth}×${mode.physicalHeight} @ ${"%.2f".format(mode.refreshRate)} Hz"
-
 private data class StreamStats(
     val resolution: String = "—",
     val videoCodec: String = "—",
@@ -1023,6 +1011,7 @@ private data class StreamStats(
             decoderName: String,
             droppedFrames: Int,
             displayMode: String,
+            measuredFrameRate: Float,
         ): StreamStats {
             val v = player.videoFormat
             val a = player.audioFormat
@@ -1031,10 +1020,12 @@ private data class StreamStats(
                 v?.sampleMimeType?.removePrefix("video/"),
                 v?.codecs?.takeIf { it.isNotBlank() },
             ).distinct().joinToString(" / ").ifBlank { "—" }
+            val fps = v?.frameRate?.takeIf { it > 0f }
+                ?: measuredFrameRate.takeIf { it > 0f }
             return StreamStats(
                 resolution = v?.let { "${it.width}×${it.height}" } ?: "—",
                 videoCodec = codec,
-                frameRate = v?.frameRate?.takeIf { it > 0 }?.let { "%.2f fps".format(it) } ?: "—",
+                frameRate = fps?.let { "%.2f fps".format(it) } ?: "—",
                 videoBitrate = v?.bitrate?.takeIf { it > 0 }?.let { "${it / 1000} kbps" } ?: "—",
                 decoder = decoderName,
                 displayMode = displayMode,

@@ -1,0 +1,82 @@
+name: Apply Fleezy player compatibility patch
+
+on:
+  push:
+    branches:
+      - fleezy-alpha-0.1
+    paths:
+      - ".github/workflows/fleezy-player-hotfix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply isolated player compatibility fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("android-native/app/src/main/kotlin/com/ultratv/tv/nativeapp/ui/player/PlayerScreen.kt")
+          text = path.read_text()
+
+          old_http = '''        val httpFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(15_000)
+            .setReadTimeoutMs(30_000)'''
+          new_http = '''        val httpFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
+            // IPTV Boss XC already accepts this player identity for API traffic;
+            // use it for the actual Live/VOD HTTP requests as well.
+            .setUserAgent("IPTVSmartersPro")
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(15_000)
+            .setReadTimeoutMs(30_000)'''
+          if old_http not in text:
+              raise SystemExit("Expected HTTP factory block not found")
+          text = text.replace(old_http, new_http, 1)
+
+          old_codec = '''            // Fire TV MediaCodec implementations vary by model/Fire OS build.
+            // Synchronous queueing avoids vendor async-queue corruption while
+            // preserving hardware decoding. This is deliberately Amazon-only.
+            if (android.os.Build.MANUFACTURER.equals("Amazon", ignoreCase = true)) {
+                forceDisableMediaCodecAsynchronousQueueing()
+            }
+'''
+          new_codec = '''            // Keep Media3's platform default MediaCodec queueing mode. The prior
+            // Amazon-wide forced-synchronous experiment introduced decoder failures
+            // on otherwise playable Live channels.
+'''
+          if old_codec not in text:
+              raise SystemExit("Expected Amazon codec override block not found")
+          text = text.replace(old_codec, new_codec, 1)
+
+          old_error = '''                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    playbackError = when (error.errorCode) {'''
+          new_error = '''                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                    android.util.Log.e(
+                        "FleezyPlayer",
+                        "Playback error ${error.errorCodeName}; decoder=$decoderName; urlHost=" +
+                            runCatching { android.net.Uri.parse(currentUrl).host }.getOrNull(),
+                        error,
+                    )
+                    playbackError = when (error.errorCode) {'''
+          if old_error not in text:
+              raise SystemExit("Expected playback error block not found")
+          text = text.replace(old_error, new_error, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Commit player compatibility fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add android-native/app/src/main/kotlin/com/ultratv/tv/nativeapp/ui/player/PlayerScreen.kt
+          git commit -m "Stabilize Boss playback on Fire TV"
+          git push origin HEAD:fleezy-alpha-0.1

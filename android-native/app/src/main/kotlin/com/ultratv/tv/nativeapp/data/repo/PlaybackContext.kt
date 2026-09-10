@@ -18,7 +18,7 @@ import javax.inject.Singleton
 class PlaybackContext @Inject constructor() {
     data class Item(
         val providerId: Long,
-        val kind: String,          // "LIVE" | "MOVIE" | "EPISODE"
+        val kind: String,          // "LIVE" | "MOVIE" | "EPISODE" | "CATCHUP"
         val remoteId: String,
         val title: String,
         val poster: String?,

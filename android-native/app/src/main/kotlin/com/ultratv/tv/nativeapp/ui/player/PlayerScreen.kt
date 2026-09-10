@@ -100,7 +100,20 @@ class PlayerViewModel @Inject constructor(
             val cur = current.value ?: return@launch
             val ch = channelDao.byRemoteId(cur.providerId, cur.remoteId) ?: return@launch
             val url = com.ultratv.tv.nativeapp.data.repo.Catchup.buildUrl(ch, prog) ?: return@launch
-            onReady(url, "${ch.name} — ${prog.title}")
+            val title = "${ch.name} — ${prog.title}"
+            zapQueue.clear()
+            playback.set(
+                PlaybackContext.Item(
+                    providerId = ch.providerId,
+                    kind = "CATCHUP",
+                    remoteId = "${ch.remoteId}:${prog.startMs}",
+                    title = title,
+                    poster = ch.logo,
+                    streamUrl = url,
+                    parentRemoteId = ch.remoteId,
+                )
+            )
+            onReady(url, title)
         }
     }
 

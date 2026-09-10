@@ -302,6 +302,32 @@ class LiveViewModel @Inject constructor(
         return provider.resolvePlayUrl(channel.id, channel.streamUrl)
     }
 
+    fun playCatchup(
+        channel: ChannelEntity,
+        prog: com.ultratv.tv.nativeapp.data.db.EpgEntity,
+        onReady: (url: String, title: String) -> Unit,
+    ) {
+        val url = com.ultratv.tv.nativeapp.data.repo.Catchup.buildUrl(channel, prog) ?: return
+        val title = "${channel.name} — ${prog.title}"
+
+        // Replay is seekable programme playback, not a live zap target. Give it
+        // its own playback/history identity so PlayerScreen uses VOD-style
+        // controls and cannot inherit UP/DOWN from a previous Live queue.
+        zapQueue.clear()
+        playback.set(
+            PlaybackContext.Item(
+                providerId = channel.providerId,
+                kind = "CATCHUP",
+                remoteId = "${channel.remoteId}:${prog.startMs}",
+                title = title,
+                poster = channel.logo,
+                streamUrl = url,
+                parentRemoteId = channel.remoteId,
+            )
+        )
+        onReady(url, title)
+    }
+
     fun resolveAndPlay(channel: ChannelEntity, onReady: (url: String, title: String) -> Unit) {
         // Seed the zap queue with the list the user was browsing so the
         // player can D-pad UP/DOWN through it without going back.

@@ -615,8 +615,7 @@ private fun LivePreviewPane(
             items = schedule,
             onWatch = onWatch,
             onCatchupPick = { prog ->
-                val url = com.ultratv.tv.nativeapp.data.repo.Catchup.buildUrl(channel, prog)
-                if (url != null) onPlayCatchup(url, "${channel.name} — ${prog.title}")
+                vm.playCatchup(channel, prog, onPlayCatchup)
             },
             onRemindPick = { prog -> vm.addReminder(channel, prog) },
             modifier = Modifier.weight(1f),

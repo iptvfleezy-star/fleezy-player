@@ -1,8 +1,8 @@
 package com.ultratv.tv.nativeapp.ui.player
 
 import android.app.Activity
+import android.os.Looper
 import android.view.Display
-import android.view.WindowManager
 import kotlin.math.abs
 import kotlin.math.round
 
@@ -86,11 +86,25 @@ internal fun chooseSameResolutionMode(display: Display, fps: Float): Display.Mod
 internal fun applyCadenceMode(activity: Activity, fps: Float): String {
     val display = activity.windowManager.defaultDisplay ?: return "—"
     val target = chooseSameResolutionMode(display, fps)
-    val lp = activity.window.attributes
-    if (lp.preferredDisplayModeId != target.modeId) {
-        lp.preferredDisplayModeId = target.modeId
-        activity.window.attributes = lp
+
+    // Media3's video-frame metadata callback runs on ExoPlayer's playback
+    // thread, but Android window attributes may only be changed on the UI
+    // thread. Posting the mode switch prevents CalledFromWrongThreadException
+    // from being surfaced by ExoPlayer as a playback failure.
+    val applyMode = {
+        val lp = activity.window.attributes
+        if (lp.preferredDisplayModeId != target.modeId) {
+            lp.preferredDisplayModeId = target.modeId
+            activity.window.attributes = lp
+        }
     }
+
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+        applyMode()
+    } else {
+        activity.runOnUiThread(applyMode)
+    }
+
     return formatDisplayMode(target)
 }
 

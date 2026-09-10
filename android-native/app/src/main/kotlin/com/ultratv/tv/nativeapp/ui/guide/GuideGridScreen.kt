@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ultratv.tv.nativeapp.data.db.CategoryEntity
+import com.ultratv.tv.nativeapp.data.db.ChannelDao
 import com.ultratv.tv.nativeapp.data.db.ChannelEntity
 import com.ultratv.tv.nativeapp.data.db.EpgDao
 import com.ultratv.tv.nativeapp.data.db.EpgEntity
@@ -68,10 +69,11 @@ import javax.inject.Inject
 private const val PX_PER_HOUR_DP = 240
 private const val PX_PER_MIN_DP = PX_PER_HOUR_DP / 60f
 private const val ROW_HEIGHT_DP = 68
+private const val FILTER_DEFAULT = "__default__"
 
-/** Provider-wide EPG view. Loads everything in [rangeForChannels] for the
- *  visible channel set; the LazyColumn only renders visible rows so the
- *  upfront query, even on 5000 channels × 24h, stays well under 100 ms. */
+/** Provider-wide EPG view. Channel data is category-scoped by default so
+ *  large Xtream lineups do not materialize every Live channel or query EPG
+ *  for thousands of rows just because the Guide screen was opened. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class GuideGridViewModel @Inject constructor(
@@ -79,6 +81,7 @@ class GuideGridViewModel @Inject constructor(
     private val catalog: CatalogRepository,
     private val provider: ProviderRepository,
     private val epgDao: EpgDao,
+    private val channelDao: ChannelDao,
     private val playback: com.ultratv.tv.nativeapp.data.repo.PlaybackContext,
     private val zapQueue: com.ultratv.tv.nativeapp.data.repo.LivePlaybackQueue,
 ) : ViewModel() {
@@ -87,42 +90,53 @@ class GuideGridViewModel @Inject constructor(
         .map { ps -> (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private val allChannels: StateFlow<List<ChannelEntity>> = activeProviderId
-        .flatMapLatest { pid ->
-            if (pid == null) flowOf(emptyList()) else catalog.channels(pid)
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
     val categories: StateFlow<List<CategoryEntity>> = activeProviderId
         .flatMapLatest { pid ->
             if (pid == null) flowOf(emptyList()) else catalog.categories(pid, "LIVE")
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val favoriteIds: StateFlow<Set<String>> = activeProviderId
-        .flatMapLatest { pid ->
-            if (pid == null) flowOf(emptySet())
-            else catalog.favoritesByKind(pid, "LIVE").map { favs -> favs.map { it.remoteId }.toSet() }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
-
-    private val _filter = MutableStateFlow("ALL")
+    // Do not start Guide on ALL. Some providers expose many thousands of Live
+    // channels, which used to trigger an immediate provider-wide Room + EPG
+    // query before the user had chosen what they wanted to browse.
+    private val _filter = MutableStateFlow(FILTER_DEFAULT)
     val filter: StateFlow<String> = _filter.asStateFlow()
 
     val channels: StateFlow<List<ChannelEntity>> = combine(
-        allChannels,
-        favoriteIds,
+        activeProviderId,
         _filter,
-    ) { channels, favorites, selected ->
-        when (selected) {
-            "ALL" -> channels
-            "FAVORITES" -> channels.filter { it.remoteId in favorites }
-            else -> channels.filter { it.categoryId == selected }
+    ) { pid, selected -> pid to selected }
+        .flatMapLatest { (pid, selected) ->
+            when {
+                pid == null || selected == FILTER_DEFAULT -> flowOf(emptyList())
+                selected == "ALL" -> catalog.channels(pid)
+                selected == "FAVORITES" -> {
+                    // Favorites are normally small. Resolve only the saved IDs
+                    // instead of loading every channel and filtering in memory.
+                    catalog.favoritesByKind(pid, "LIVE").map { favs ->
+                        favs.mapNotNull { fav -> channelDao.byRemoteId(pid, fav.remoteId) }
+                    }
+                }
+                else -> catalog.channelsForCategory(pid, selected)
+            }
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun selectFilter(value: String) {
         _filter.value = value
+    }
+
+    init {
+        // IPTVBoss / Xtream category order becomes the natural Guide landing
+        // point. ALL is still available explicitly, but opening Guide no longer
+        // performs the heaviest possible query by default.
+        viewModelScope.launch {
+            categories.collect { list ->
+                if (_filter.value == FILTER_DEFAULT && list.isNotEmpty()) {
+                    _filter.value = list.first().remoteId
+                }
+            }
+        }
     }
 
     private val _programmes = MutableStateFlow<Map<Long, List<EpgEntity>>>(emptyMap())
@@ -331,6 +345,7 @@ fun GuideGridScreen(
 
         if (channels.isEmpty()) {
             val emptyMessage = when (selectedFilter) {
+                FILTER_DEFAULT -> S.guideLoading
                 "FAVORITES" -> "No favorite channels yet. Add favorites from Live TV."
                 "ALL" -> S.guideNoChannels
                 else -> "No channels in this category."

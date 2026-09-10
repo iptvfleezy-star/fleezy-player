@@ -3,6 +3,7 @@ package com.ultratv.tv.nativeapp.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -119,26 +121,37 @@ fun HomeScreen(
 
         Spacer(Modifier.height(22.dp))
 
-        // Primary TV destinations — keep the most-used actions visible without
-        // making customers hunt through the sidebar.
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = UltraTokens.EdgeGutter),
+        // Primary TV destinations. Use a horizontal rail rather than a fixed
+        // five-button Row: Fire TV devices can expose a much narrower logical
+        // viewport than the physical 1080p output, so a fixed 1,000+ dp row
+        // clips the last actions. LazyRow keeps LIVE TV first and lets focus
+        // naturally bring Guide/Favorites/VOD into view with the D-pad.
+        Text(
+            "WATCH",
+            color = UltraTokens.Fg3,
+            fontSize = 11.sp,
+            letterSpacing = 2.3.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(horizontal = UltraTokens.EdgeGutter),
+        )
+        Spacer(Modifier.height(10.dp))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = UltraTokens.EdgeGutter),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                "WATCH",
-                color = UltraTokens.Fg3,
-                fontSize = 11.sp,
-                letterSpacing = 2.3.sp,
-                fontWeight = FontWeight.Medium,
-            )
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            item("home-live") {
                 HomeQuickAction("LIVE TV", "Watch channels", primary = true, onClick = onGoLive)
+            }
+            item("home-guide") {
                 HomeQuickAction("TV GUIDE", "What's on now", onClick = onGoGuide)
+            }
+            item("home-favorites") {
                 HomeQuickAction("FAVORITES", "Your channels", onClick = onGoFavorites)
+            }
+            item("home-movies") {
                 HomeQuickAction("MOVIES", "Browse VOD", onClick = onGoMovies)
+            }
+            item("home-series") {
                 HomeQuickAction("SERIES", "Browse shows", onClick = onGoSeries)
             }
         }

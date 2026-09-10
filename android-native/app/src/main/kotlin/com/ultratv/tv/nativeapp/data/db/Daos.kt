@@ -91,7 +91,13 @@ interface ChannelDao {
     """)
     suspend fun byRemoteIds(pid: Long, remoteIds: List<String>): List<ChannelEntity>
 
-    @Query("SELECT * FROM channel WHERE providerId = :pid AND name LIKE '%' || :q || '%' ORDER BY name LIMIT 50")
+    @Query("""
+        SELECT * FROM channel
+        WHERE providerId = :pid AND name LIKE '%' || :q || '%'
+        ORDER BY CASE WHEN name LIKE :q || '%' THEN 0 ELSE 1 END,
+                 name COLLATE NOCASE ASC
+        LIMIT 50
+    """)
     suspend fun search(pid: Long, q: String): List<ChannelEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -136,7 +142,13 @@ interface MovieDao {
     @Query("SELECT * FROM movie WHERE providerId = :pid AND remoteId = :rid LIMIT 1")
     suspend fun byRemoteId(pid: Long, rid: String): MovieEntity?
 
-    @Query("SELECT * FROM movie WHERE providerId = :pid AND name LIKE '%' || :q || '%' ORDER BY name LIMIT 50")
+    @Query("""
+        SELECT * FROM movie
+        WHERE providerId = :pid AND name LIKE '%' || :q || '%'
+        ORDER BY CASE WHEN name LIKE :q || '%' THEN 0 ELSE 1 END,
+                 name COLLATE NOCASE ASC
+        LIMIT 50
+    """)
     suspend fun search(pid: Long, q: String): List<MovieEntity>
 
     @Query("SELECT * FROM movie WHERE providerId = :pid ORDER BY name COLLATE NOCASE ASC")
@@ -175,7 +187,13 @@ interface SeriesDao {
     @Query("SELECT * FROM series WHERE providerId = :pid AND remoteId = :rid LIMIT 1")
     suspend fun byRemoteId(pid: Long, rid: String): SeriesEntity?
 
-    @Query("SELECT * FROM series WHERE providerId = :pid AND name LIKE '%' || :q || '%' ORDER BY name LIMIT 50")
+    @Query("""
+        SELECT * FROM series
+        WHERE providerId = :pid AND name LIKE '%' || :q || '%'
+        ORDER BY CASE WHEN name LIKE :q || '%' THEN 0 ELSE 1 END,
+                 name COLLATE NOCASE ASC
+        LIMIT 50
+    """)
     suspend fun search(pid: Long, q: String): List<SeriesEntity>
 
     @Query("SELECT * FROM series WHERE providerId = :pid ORDER BY name COLLATE NOCASE ASC")

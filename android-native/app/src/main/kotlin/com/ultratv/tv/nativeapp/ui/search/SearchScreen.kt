@@ -82,18 +82,32 @@ class SearchViewModel @Inject constructor(
     private var job: Job? = null
 
     fun setQuery(s: String) {
-        _q.value = s
+        val next = s.take(80)
+        _q.value = next
         job?.cancel()
+
+        val term = next.trim()
+        // A single-character contains-query across a very large Live/VOD
+        // catalogue is expensive and rarely useful on a TV keyboard.
+        if (term.length < 2) {
+            _results.value = SearchResults()
+            return
+        }
+
         job = viewModelScope.launch {
             delay(220)
             val pid = provider.firstActive()?.id ?: return@launch
-            _results.value = catalog.search(pid, s)
+            val found = catalog.search(pid, term)
+
+            // Room queries can finish after the user has typed another key.
+            // Never flash stale results from an older request.
+            if (_q.value.trim() != term) return@launch
+            _results.value = found
+
             // Only promote a query into Recent after the user pauses on it.
-            // This avoids filling history with partial strings while typing
-            // letter-by-letter with a TV remote.
-            if (s.length >= 3) {
+            if (term.length >= 3) {
                 delay(900)
-                if (_q.value == s) history.record(s)
+                if (_q.value.trim() == term) history.record(term)
             }
         }
     }
@@ -326,9 +340,16 @@ fun SearchScreen(
                 3 -> r.channels.size
                 else -> total
             }
+            val canSearch = q.trim().length >= 2
             if (q.isBlank()) {
                 Text(
                     "Start typing to search.",
+                    color = UltraTokens.Fg3,
+                    fontSize = 14.sp,
+                )
+            } else if (!canSearch) {
+                Text(
+                    "Type at least 2 characters to search.",
                     color = UltraTokens.Fg3,
                     fontSize = 14.sp,
                 )
@@ -353,25 +374,25 @@ fun SearchScreen(
             }
 
             val showAll = activeFilter == 0
-            if (showAll || activeFilter == 1) {
-                ResultSection("Movies", r.movies, total) { m ->
+            if (canSearch && (showAll || activeFilter == 1)) {
+                ResultSection("Movies", r.movies) { m ->
                     SquareResultCard(m.name, m.year?.toString(), m.poster, onClick = { onOpenMovie(m.id) })
                 }
             }
-            if (showAll || activeFilter == 2) {
-                ResultSection("Series", r.series, total) { s ->
-                    SquareResultCard(s.name, s.year?.toString(), s.poster, onClick = { onOpenSeries(s.id) })
+            if (canSearch && (showAll || activeFilter == 2)) {
+                ResultSection("Series", r.series) { series ->
+                    SquareResultCard(series.name, series.year?.toString(), series.poster, onClick = { onOpenSeries(series.id) })
                 }
             }
-            if (showAll || activeFilter == 3) {
-                ResultSection("Live channels", r.channels, total) { c ->
-                    ChannelResultCard(c, onClick = {
-                        vm.playChannel(c, onOpenChannel)
+            if (canSearch && (showAll || activeFilter == 3)) {
+                ResultSection("Live channels", r.channels) { channel ->
+                    ChannelResultCard(channel, onClick = {
+                        vm.playChannel(channel, onOpenChannel)
                     })
                 }
             }
 
-            if (q.isNotBlank() && total == 0) {
+            if (canSearch && total == 0) {
                 Text(
                     "No results",
                     color = UltraTokens.Fg3,
@@ -431,7 +452,6 @@ private fun KeyboardKey(
 private fun <T : Any> ResultSection(
     title: String,
     items: List<T>,
-    @Suppress("UNUSED_PARAMETER") total: Int,
     card: @Composable (T) -> Unit,
 ) {
     if (items.isEmpty()) return
@@ -443,12 +463,15 @@ private fun <T : Any> ResultSection(
             fontWeight = FontWeight.SemiBold,
         )
         Spacer(Modifier.height(12.dp))
-        FlowRow(
-            Modifier.fillMaxWidth(),
+        // TV-native rail: left/right stays inside a result type and only
+        // visible cards are composed. Unlike the old FlowRow, all DAO results
+        // remain reachable without building a large wrapped block.
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(end = 24.dp),
         ) {
-            items.take(12).forEach { card(it) }
+            items(items) { entry -> card(entry) }
         }
     }
 }

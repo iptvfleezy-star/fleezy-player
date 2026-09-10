@@ -81,7 +81,10 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
     // Channel awaiting PIN unlock; non-null while the dialog is up.
     var pinPrompt by remember { mutableStateOf<com.ultratv.tv.nativeapp.data.db.ChannelEntity?>(null) }
     // Currently focused channel for the preview pane (defaults to the first one).
-    var activeIdx by remember(chans.size) { mutableStateOf(0) }
+    // Reset the preview cursor when either the category or its result size
+    // changes. Two categories can contain the same number of channels, and
+    // remembering only chans.size could leave the preview on an unrelated row.
+    var activeIdx by remember(selected, chans.size) { mutableStateOf(0) }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
 
     Row(Modifier.fillMaxSize().padding(top = 76.dp)) {

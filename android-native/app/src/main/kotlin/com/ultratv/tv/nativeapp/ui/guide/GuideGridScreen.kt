@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -225,7 +226,15 @@ fun GuideGridScreen(
     val T = com.ultratv.tv.nativeapp.ui.theme.UltraTokens
     val F = com.ultratv.tv.nativeapp.ui.theme.UltraFonts
     val hScroll = rememberScrollState()
+    val channelListState = rememberLazyListState()
     val guideScope = androidx.compose.runtime.rememberCoroutineScope()
+
+    // Switching Guide filters should always land on the first channel in the
+    // newly selected list. Without an explicit state reset, LazyColumn can
+    // retain a deep scroll index from the previous category on TV.
+    LaunchedEffect(selectedFilter) {
+        channelListState.scrollToItem(0)
+    }
     Column(Modifier.fillMaxSize()) {
         // Editorial header
         androidx.compose.foundation.layout.Spacer(Modifier.height(40.dp))
@@ -357,6 +366,7 @@ fun GuideGridScreen(
             )
         } else {
             LazyColumn(
+                state = channelListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(start = T.EdgeGutter, end = T.EdgeGutter),

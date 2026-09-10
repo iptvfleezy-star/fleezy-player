@@ -146,6 +146,9 @@ class GuideGridViewModel @Inject constructor(
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
+    private var reloadJob: kotlinx.coroutines.Job? = null
+    private var lastRequestedChannels: List<ChannelEntity> = emptyList()
+
     fun playChannel(
         channel: ChannelEntity,
         onReady: (url: String, title: String) -> Unit,
@@ -176,18 +179,27 @@ class GuideGridViewModel @Inject constructor(
                 provider.syncXmltv(activeId) { /* SyncStatusBus handles UI */ }
             } finally {
                 _loading.value = false
-                reloadFor(channels.value)
+                // Refresh only the Guide rows the user is currently browsing.
+                // Using channels.value here would turn an explicit ALL filter
+                // back into a provider-wide EPG query after every XMLTV sync.
+                reloadFor(lastRequestedChannels)
             }
         }
     }
 
     /** Reload programmes for the visible channels for the next 12 h window. */
     fun reloadFor(visible: List<ChannelEntity>) {
-        viewModelScope.launch {
-            if (visible.isEmpty()) { _programmes.value = emptyMap(); return@launch }
+        lastRequestedChannels = visible
+        reloadJob?.cancel()
+        reloadJob = viewModelScope.launch {
+            if (visible.isEmpty()) {
+                _programmes.value = emptyMap()
+                return@launch
+            }
             val now = System.currentTimeMillis()
             val end = now + 12 * 60 * 60 * 1000L
-            // 500-id chunks: SQLite refuses IN-lists > 999 host params.
+            // The UI supplies a small window around the rows currently on
+            // screen. Chunking remains a safety net for SQLite's host limit.
             val flat = visible.map { it.id }.chunked(500).flatMap { ids ->
                 epgDao.rangeForChannels(ids, now - 60 * 60_000, end)
             }
@@ -207,9 +219,22 @@ fun GuideGridScreen(
     val selectedFilter by vm.filter.collectAsState()
     val byChannel by vm.programmes.collectAsState()
     val loading by vm.loading.collectAsState()
+    val channelListState = rememberLazyListState()
+    val firstVisibleChannelIndex = channelListState.firstVisibleItemIndex
 
-    // Reload programmes whenever the channel list changes.
-    LaunchedEffect(channels) { vm.reloadFor(channels) }
+    // Keep EPG work bounded even when the customer explicitly selects ALL.
+    // We preload a generous window around the visible rows so D-pad scrolling
+    // remains smooth without querying thousands of channels at once.
+    LaunchedEffect(channels, firstVisibleChannelIndex) {
+        if (channels.isEmpty()) {
+            vm.reloadFor(emptyList())
+        } else {
+            val anchor = firstVisibleChannelIndex.coerceIn(0, channels.lastIndex)
+            val from = (anchor - 20).coerceAtLeast(0)
+            val to = (anchor + 80).coerceAtMost(channels.size)
+            vm.reloadFor(channels.subList(from, to))
+        }
+    }
 
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
@@ -226,7 +251,6 @@ fun GuideGridScreen(
     val T = com.ultratv.tv.nativeapp.ui.theme.UltraTokens
     val F = com.ultratv.tv.nativeapp.ui.theme.UltraFonts
     val hScroll = rememberScrollState()
-    val channelListState = rememberLazyListState()
     val guideScope = androidx.compose.runtime.rememberCoroutineScope()
 
     // Switching Guide filters should always land on the first channel in the

@@ -45,6 +45,8 @@ import com.ultratv.tv.nativeapp.data.db.ChannelDao
 import com.ultratv.tv.nativeapp.data.db.ChannelEntity
 import com.ultratv.tv.nativeapp.data.db.EpgDao
 import com.ultratv.tv.nativeapp.data.db.EpgEntity
+import com.ultratv.tv.nativeapp.data.prefs.MyGroup
+import com.ultratv.tv.nativeapp.data.prefs.MyGroupsStore
 import com.ultratv.tv.nativeapp.data.repo.CatalogRepository
 import com.ultratv.tv.nativeapp.data.repo.ProviderRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -75,6 +77,8 @@ private const val PX_PER_HOUR_DP = 240
 private const val PX_PER_MIN_DP = PX_PER_HOUR_DP / 60f
 private const val ROW_HEIGHT_DP = 68
 private const val FILTER_DEFAULT = "__default__"
+private const val FILTER_MY_GROUP_PREFIX = "__my_group__:"
+private fun myGroupFilterId(groupId: String): String = FILTER_MY_GROUP_PREFIX + groupId
 
 /** Provider-wide EPG view. Channel data is category-scoped by default so
  *  large Xtream lineups do not materialize every Live channel or query EPG
@@ -87,6 +91,7 @@ class GuideGridViewModel @Inject constructor(
     private val provider: ProviderRepository,
     private val epgDao: EpgDao,
     private val channelDao: ChannelDao,
+    private val myGroupsStore: MyGroupsStore,
     private val playback: com.ultratv.tv.nativeapp.data.repo.PlaybackContext,
     private val zapQueue: com.ultratv.tv.nativeapp.data.repo.LivePlaybackQueue,
 ) : ViewModel() {
@@ -100,6 +105,12 @@ class GuideGridViewModel @Inject constructor(
             if (pid == null) flowOf(emptyList()) else catalog.categories(pid, "LIVE")
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val myGroups: StateFlow<List<MyGroup>> =
+        combine(activeProviderId, myGroupsStore.groups) { pid, groups ->
+            if (pid == null) emptyList() else groups.filter { it.providerId == pid }
+        }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // Do not start Guide on ALL. Some providers expose many thousands of Live
     // channels, which used to trigger an immediate provider-wide Room + EPG
@@ -120,6 +131,27 @@ class GuideGridViewModel @Inject constructor(
                     // instead of loading every channel and filtering in memory.
                     catalog.favoritesByKind(pid, "LIVE").map { favs ->
                         favs.mapNotNull { fav -> channelDao.byRemoteId(pid, fav.remoteId) }
+                    }
+                }
+                selected.startsWith(FILTER_MY_GROUP_PREFIX) -> {
+                    val groupId = selected.removePrefix(FILTER_MY_GROUP_PREFIX)
+                    myGroupsStore.members.map { memberships ->
+                        val remoteIds = memberships.asSequence()
+                            .filter { it.providerId == pid && it.groupId == groupId }
+                            .map { it.remoteId }
+                            .distinct()
+                            .toList()
+                        if (remoteIds.isEmpty()) {
+                            emptyList()
+                        } else {
+                            remoteIds.chunked(500)
+                                .flatMap { ids -> channelDao.byRemoteIds(pid, ids) }
+                                .sortedWith(
+                                    compareBy<ChannelEntity> { if (it.userPosition == 0) 1 else 0 }
+                                        .thenBy { it.userPosition }
+                                        .thenBy { it.name.lowercase() },
+                                )
+                        }
                     }
                 }
                 else -> catalog.channelsForCategory(pid, selected)
@@ -225,6 +257,7 @@ fun GuideGridScreen(
 ) {
     val channels by vm.channels.collectAsState()
     val categories by vm.categories.collectAsState()
+    val myGroups by vm.myGroups.collectAsState()
     val selectedFilter by vm.filter.collectAsState()
     val byChannel by vm.programmes.collectAsState()
     val loading by vm.loading.collectAsState()
@@ -305,15 +338,22 @@ fun GuideGridScreen(
 
     // Keep the selected Guide filter chip on-screen when the provider has a
     // long category list. This scrolls the rail but never changes focus.
-    LaunchedEffect(selectedFilter, categories) {
+    LaunchedEffect(selectedFilter, categories, myGroups) {
         val index = when (selectedFilter) {
             "ALL" -> 0
             "FAVORITES" -> 1
             FILTER_DEFAULT -> -1
-            else -> categories.indexOfFirst { it.remoteId == selectedFilter }
-                .takeIf { it >= 0 }
-                ?.plus(2)
-                ?: -1
+            else -> {
+                val groupIndex = myGroups.indexOfFirst { myGroupFilterId(it.id) == selectedFilter }
+                if (groupIndex >= 0) {
+                    groupIndex + 2
+                } else {
+                    categories.indexOfFirst { it.remoteId == selectedFilter }
+                        .takeIf { it >= 0 }
+                        ?.plus(2 + myGroups.size)
+                        ?: -1
+                }
+            }
         }
         if (index >= 0) filterListState.scrollToItem(index)
     }
@@ -381,6 +421,14 @@ fun GuideGridScreen(
                     onClick = { vm.selectFilter("FAVORITES") },
                 )
             }
+            items(myGroups, key = { "guide-group-" + it.id }) { group ->
+                val filterId = myGroupFilterId(group.id)
+                GuideFilterChip(
+                    label = "◆ " + group.name.uppercase(),
+                    selected = selectedFilter == filterId,
+                    onClick = { vm.selectFilter(filterId) },
+                )
+            }
             items(categories, key = { "guide-cat-${it.remoteId}" }) { cat ->
                 GuideFilterChip(
                     label = com.ultratv.tv.nativeapp.ui.common.prettyCategoryName(cat.name).uppercase(),
@@ -436,10 +484,12 @@ fun GuideGridScreen(
         Box(Modifier.fillMaxWidth().height(1.dp).background(T.Line))
 
         if (channels.isEmpty()) {
-            val emptyMessage = when (selectedFilter) {
-                FILTER_DEFAULT -> S.guideLoading
-                "FAVORITES" -> "No favorite channels yet. Add favorites from Live TV."
-                "ALL" -> S.guideNoChannels
+            val emptyMessage = when {
+                selectedFilter == FILTER_DEFAULT -> S.guideLoading
+                selectedFilter == "FAVORITES" -> "No favorite channels yet. Add favorites from Live TV."
+                selectedFilter == "ALL" -> S.guideNoChannels
+                selectedFilter.startsWith(FILTER_MY_GROUP_PREFIX) ->
+                    "No channels in this group. Add channels from Live TV."
                 else -> "No channels in this category."
             }
             Text(

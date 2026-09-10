@@ -104,6 +104,9 @@ interface MovieDao {
     @Query("SELECT * FROM movie WHERE id = :id")
     suspend fun byId(id: Long): MovieEntity?
 
+    @Query("SELECT * FROM movie WHERE providerId = :pid AND remoteId = :rid LIMIT 1")
+    suspend fun byRemoteId(pid: Long, rid: String): MovieEntity?
+
     @Query("SELECT * FROM movie WHERE providerId = :pid AND name LIKE '%' || :q || '%' ORDER BY name LIMIT 50")
     suspend fun search(pid: Long, q: String): List<MovieEntity>
 
@@ -133,6 +136,9 @@ interface SeriesDao {
 
     @Query("SELECT * FROM series WHERE id = :id")
     suspend fun byId(id: Long): SeriesEntity?
+
+    @Query("SELECT * FROM series WHERE providerId = :pid AND remoteId = :rid LIMIT 1")
+    suspend fun byRemoteId(pid: Long, rid: String): SeriesEntity?
 
     @Query("SELECT * FROM series WHERE providerId = :pid AND name LIKE '%' || :q || '%' ORDER BY name LIMIT 50")
     suspend fun search(pid: Long, q: String): List<SeriesEntity>

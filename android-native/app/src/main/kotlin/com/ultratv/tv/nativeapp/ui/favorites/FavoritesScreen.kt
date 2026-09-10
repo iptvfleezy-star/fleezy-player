@@ -55,33 +55,40 @@ class FavoritesViewModel @Inject constructor(
     val channels: StateFlow<List<ChannelEntity>> = providers.flatMapLatest { ps ->
         val pid = (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id
             ?: return@flatMapLatest flowOf(emptyList())
-        catalog.favoritesByKind(pid, "LIVE").flatMapLatest { favs ->
-            catalog.channels(pid).map { list ->
-                val ids = favs.map { it.remoteId }.toSet()
-                list.filter { it.remoteId in ids }
+        catalog.favoritesByKind(pid, "LIVE").map { favs ->
+            val saved = ArrayList<ChannelEntity>(favs.size)
+            for (favorite in favs) {
+                catalog.channelByRemoteId(pid, favorite.remoteId)?.let(saved::add)
             }
+            saved.sortedWith(
+                compareBy<ChannelEntity> { it.userPosition == 0 }
+                    .thenBy { it.userPosition }
+                    .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val movies: StateFlow<List<MovieEntity>> = providers.flatMapLatest { ps ->
         val pid = (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id
             ?: return@flatMapLatest flowOf(emptyList())
-        catalog.favoritesByKind(pid, "MOVIE").flatMapLatest { favs ->
-            catalog.movies(pid).map { list ->
-                val ids = favs.map { it.remoteId }.toSet()
-                list.filter { it.remoteId in ids }
+        catalog.favoritesByKind(pid, "MOVIE").map { favs ->
+            val saved = ArrayList<MovieEntity>(favs.size)
+            for (favorite in favs) {
+                catalog.movieByRemoteId(pid, favorite.remoteId)?.let(saved::add)
             }
+            saved.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val series: StateFlow<List<SeriesEntity>> = providers.flatMapLatest { ps ->
         val pid = (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id
             ?: return@flatMapLatest flowOf(emptyList())
-        catalog.favoritesByKind(pid, "SERIES").flatMapLatest { favs ->
-            catalog.seriesList(pid).map { list ->
-                val ids = favs.map { it.remoteId }.toSet()
-                list.filter { it.remoteId in ids }
+        catalog.favoritesByKind(pid, "SERIES").map { favs ->
+            val saved = ArrayList<SeriesEntity>(favs.size)
+            for (favorite in favs) {
+                catalog.seriesByRemoteId(pid, favorite.remoteId)?.let(saved::add)
             }
+            saved.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 

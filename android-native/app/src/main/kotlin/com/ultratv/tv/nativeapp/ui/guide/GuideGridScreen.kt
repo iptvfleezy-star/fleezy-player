@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +31,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -143,6 +146,11 @@ class GuideGridViewModel @Inject constructor(
     private val _programmes = MutableStateFlow<Map<Long, List<EpgEntity>>>(emptyMap())
     val programmes: StateFlow<Map<Long, List<EpgEntity>>> = _programmes.asStateFlow()
 
+    // The player updates this identity on every Live zap. Guide uses it only
+    // to restore the row the customer actually finished watching.
+    val currentPlayback: StateFlow<com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item?> =
+        playback.current
+
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
@@ -219,7 +227,12 @@ fun GuideGridScreen(
     val selectedFilter by vm.filter.collectAsState()
     val byChannel by vm.programmes.collectAsState()
     val loading by vm.loading.collectAsState()
+    val currentPlayback by vm.currentPlayback.collectAsState()
     val channelListState = rememberLazyListState()
+    val filterListState = rememberLazyListState()
+    val channelFocusRequester = remember { FocusRequester() }
+    var restoreFocusIndex by remember { mutableStateOf(-1) }
+    var lastPositionedFilter by remember { mutableStateOf<String?>(null) }
     val firstVisibleChannelIndex = channelListState.firstVisibleItemIndex
 
     // Keep EPG work bounded even when the customer explicitly selects ALL.
@@ -253,11 +266,55 @@ fun GuideGridScreen(
     val hScroll = rememberScrollState()
     val guideScope = androidx.compose.runtime.rememberCoroutineScope()
 
-    // Switching Guide filters should always land on the first channel in the
-    // newly selected list. Without an explicit state reset, LazyColumn can
-    // retain a deep scroll index from the previous category on TV.
-    LaunchedEffect(selectedFilter) {
-        channelListState.scrollToItem(0)
+    // Restore the channel the fullscreen player actually ended on. If the
+    // customer switches filters while staying in Guide, start the new filter
+    // at row one and do not steal D-pad focus from the filter rail.
+    LaunchedEffect(selectedFilter, channels, currentPlayback?.remoteId) {
+        if (channels.isEmpty()) return@LaunchedEffect
+
+        val firstPositionForScreen = lastPositionedFilter == null
+        val filterChanged =
+            lastPositionedFilter != null && lastPositionedFilter != selectedFilter
+
+        if (firstPositionForScreen) {
+            val playingIndex = currentPlayback
+                ?.takeIf { it.kind == "LIVE" }
+                ?.let { playing ->
+                    channels.indexOfFirst {
+                        it.providerId == playing.providerId &&
+                            it.remoteId == playing.remoteId
+                    }
+                }
+                ?: -1
+
+            restoreFocusIndex = playingIndex
+            channelListState.scrollToItem(playingIndex.takeIf { it >= 0 } ?: 0)
+
+            if (playingIndex >= 0) {
+                androidx.compose.runtime.withFrameNanos { }
+                runCatching { channelFocusRequester.requestFocus() }
+            }
+        } else if (filterChanged) {
+            restoreFocusIndex = -1
+            channelListState.scrollToItem(0)
+        }
+
+        lastPositionedFilter = selectedFilter
+    }
+
+    // Keep the selected Guide filter chip on-screen when the provider has a
+    // long category list. This scrolls the rail but never changes focus.
+    LaunchedEffect(selectedFilter, categories) {
+        val index = when (selectedFilter) {
+            "ALL" -> 0
+            "FAVORITES" -> 1
+            FILTER_DEFAULT -> -1
+            else -> categories.indexOfFirst { it.remoteId == selectedFilter }
+                .takeIf { it >= 0 }
+                ?.plus(2)
+                ?: -1
+        }
+        if (index >= 0) filterListState.scrollToItem(index)
     }
     Column(Modifier.fillMaxSize()) {
         // Editorial header
@@ -305,6 +362,7 @@ fun GuideGridScreen(
         // Fast TV-first filtering. Large providers can expose thousands of
         // channels, so Guide should never require scrolling one enormous list.
         LazyRow(
+            state = filterListState,
             contentPadding = PaddingValues(start = T.EdgeGutter, end = T.EdgeGutter, bottom = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -397,9 +455,14 @@ fun GuideGridScreen(
                 verticalArrangement = Arrangement.spacedBy(0.dp),
                 contentPadding = PaddingValues(bottom = 40.dp),
             ) {
-                items(channels, key = { it.id }) { c ->
+                itemsIndexed(channels, key = { _, c -> c.id }) { index, c ->
                     GuideRow(
                         channel = c,
+                        channelModifier = if (index == restoreFocusIndex) {
+                            Modifier.focusRequester(channelFocusRequester)
+                        } else {
+                            Modifier
+                        },
                         programmes = byChannel[c.id].orEmpty(),
                         windowStartMs = windowStart,
                         windowEndMs = windowEnd,
@@ -419,6 +482,7 @@ fun GuideGridScreen(
 @Composable
 private fun GuideRow(
     channel: ChannelEntity,
+    channelModifier: Modifier = Modifier,
     programmes: List<EpgEntity>,
     windowStartMs: Long,
     windowEndMs: Long,
@@ -438,7 +502,7 @@ private fun GuideRow(
         // Channel column — fixed left: logo + name, clickable to start playback.
         Card(
             onClick = onPlay,
-            modifier = Modifier.width(200.dp).fillMaxHeight().padding(end = 8.dp),
+            modifier = channelModifier.width(200.dp).fillMaxHeight().padding(end = 8.dp),
             shape = CardDefaults.shape(RoundedCornerShape(10.dp)),
             colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
                 containerColor = T.Surface1,

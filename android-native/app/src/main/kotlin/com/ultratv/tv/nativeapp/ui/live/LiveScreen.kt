@@ -31,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -78,6 +80,7 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
     val selected by vm.selectedCategory.collectAsState()
     val locked by vm.lockedChannels.collectAsState()
     val nowNext by vm.nowNext.collectAsState()
+    val currentPlayback by vm.currentPlayback.collectAsState()
     // Channel awaiting PIN unlock; non-null while the dialog is up.
     var pinPrompt by remember { mutableStateOf<com.ultratv.tv.nativeapp.data.db.ChannelEntity?>(null) }
     // Currently focused channel for the preview pane (defaults to the first one).
@@ -85,6 +88,9 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
     // changes. Two categories can contain the same number of channels, and
     // remembering only chans.size could leave the preview on an unrelated row.
     var activeIdx by remember(selected, chans.size) { mutableStateOf(0) }
+    val channelFocusRequester = remember { FocusRequester() }
+    val categoryListState = rememberLazyListState()
+    var lastPositionedCategory by remember { mutableStateOf<String?>(null) }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
 
     Row(Modifier.fillMaxSize().padding(top = 76.dp)) {
@@ -105,7 +111,10 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(start = 24.dp, bottom = 14.dp),
             )
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            LazyColumn(
+                state = categoryListState,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 item("__all__") {
                     CategoryRow(
                         label = "All channels",
@@ -152,6 +161,20 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                 CATEGORY_FAVORITES -> S.favorites
                 else -> prettyCategoryName(cats.firstOrNull { it.remoteId == selected }?.name ?: "")
             }
+
+            // Keep the selected category visible in the left rail, including
+            // categories far below the initial Fire TV viewport.
+            LaunchedEffect(selected, cats) {
+                val index = when (selected) {
+                    CATEGORY_ALL -> 0
+                    CATEGORY_FAVORITES -> 1
+                    else -> cats.indexOfFirst { it.remoteId == selected }
+                        .takeIf { it >= 0 }
+                        ?.plus(2)
+                        ?: -1
+                }
+                if (index >= 0) categoryListState.scrollToItem(index)
+            }
             Row(
                 modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -173,9 +196,43 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
             }
 
             val listState = rememberLazyListState()
-            // Reset scroll when the user switches category so they always see
-            // the top of the new list, like Tivimate.
-            LaunchedEffect(selected) { listState.scrollToItem(0) }
+
+            // On first composition (including returning from fullscreen), line
+            // the list and preview back up with the channel PlaybackContext
+            // currently identifies. During normal category browsing we still
+            // reset the new category to its first row and never steal focus.
+            LaunchedEffect(selected, chans, currentPlayback?.remoteId) {
+                if (chans.isEmpty()) return@LaunchedEffect
+
+                val firstPositionForScreen = lastPositionedCategory == null
+                val categoryChanged =
+                    lastPositionedCategory != null && lastPositionedCategory != selected
+
+                if (firstPositionForScreen) {
+                    val playingIndex = currentPlayback
+                        ?.takeIf { it.kind == "LIVE" }
+                        ?.let { playing ->
+                            chans.indexOfFirst {
+                                it.providerId == playing.providerId &&
+                                    it.remoteId == playing.remoteId
+                            }
+                        }
+                        ?: -1
+
+                    activeIdx = playingIndex.takeIf { it >= 0 } ?: 0
+                    listState.scrollToItem(activeIdx)
+
+                    if (playingIndex >= 0) {
+                        androidx.compose.runtime.withFrameNanos { }
+                        runCatching { channelFocusRequester.requestFocus() }
+                    }
+                } else if (categoryChanged) {
+                    activeIdx = 0
+                    listState.scrollToItem(0)
+                }
+
+                lastPositionedCategory = selected
+            }
 
             if (chans.isEmpty()) {
                 Text(
@@ -194,6 +251,11 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                         ChannelRow(
                             channel = c,
                             position = i + 1,
+                            modifier = if (i == activeIdx) {
+                                Modifier.focusRequester(channelFocusRequester)
+                            } else {
+                                Modifier
+                            },
                             locked = isLocked,
                             active = i == activeIdx,
                             nowProgramme = nn?.first,
@@ -300,6 +362,7 @@ private fun CategoryRow(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun ChannelRow(
     channel: ChannelEntity,
     position: Int,
+    modifier: Modifier = Modifier,
     locked: Boolean = false,
     active: Boolean = false,
     nowProgramme: com.ultratv.tv.nativeapp.data.db.EpgEntity? = null,
@@ -315,6 +378,7 @@ private fun ChannelRow(
     val highlight = focused || active
     Card(
         onClick = onClick,
+        modifier = modifier,
         interactionSource = interaction,
         shape = CardDefaults.shape(RoundedCornerShape(0.dp)),
         colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(

@@ -94,6 +94,10 @@ class LiveViewModel @Inject constructor(
     val lockedChannels: StateFlow<Set<String>> = lockedStore.locked
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
 
+    // Expose the singleton playback identity so LiveScreen can restore the
+    // channel row the customer was actually watching after fullscreen exits.
+    val currentPlayback: StateFlow<PlaybackContext.Item?> = playback.current
+
     // EPG now/next per channel for the current visible list. We re-query every
     // 60s as well as whenever the channel list changes; rangeForChannels with
     // an IN(...) on a few hundred ids is fast (indices on channelId).

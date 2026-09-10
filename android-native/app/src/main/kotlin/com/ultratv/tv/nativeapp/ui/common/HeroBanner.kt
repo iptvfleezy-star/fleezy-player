@@ -52,7 +52,7 @@ fun HeroBanner(
     meta: List<String> = emptyList(),
     synopsis: String? = null,
     cast: String? = null,
-    primaryLabel: String = "Lecture",
+    primaryLabel: String = "Play",
     onPrimary: () -> Unit,
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,

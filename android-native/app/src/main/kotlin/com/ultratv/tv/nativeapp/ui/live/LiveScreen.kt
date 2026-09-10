@@ -903,18 +903,6 @@ private fun LiveChip() {
 }
 
 @Composable
-private fun UhdBadge() {
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(UltraTokens.Uhd)
-            .padding(horizontal = 7.dp, vertical = 3.dp),
-    ) {
-        Text("HD", color = Color(0xFF2B1700), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.4.sp)
-    }
-}
-
-@Composable
 private fun ProgrammeCard(
     label: String,
     title: String,

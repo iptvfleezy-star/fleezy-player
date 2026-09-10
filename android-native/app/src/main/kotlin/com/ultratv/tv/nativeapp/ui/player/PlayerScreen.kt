@@ -143,7 +143,6 @@ class PlayerViewModel @Inject constructor(
             com.ultratv.tv.nativeapp.ui.common.Toaster.show("Unable to open channel. Try again.")
             return null
         }
-        // Only advance the queue after the stream URL resolved successfully.
         zapQueue.set(state.channels, target)
         playback.set(PlaybackContext.Item(
             providerId = target.providerId, kind = "LIVE", remoteId = target.remoteId,
@@ -152,12 +151,6 @@ class PlayerViewModel @Inject constructor(
         return resolved
     }
 
-    /**
-     * Lightweight state for the full-screen channel drawer. Keep the original
-     * channel list by reference instead of allocating one presentation object
-     * per channel every time the zap index changes. On huge All-channel queues
-     * that avoids rebuilding tens of thousands of rows for a single UP/DOWN.
-     */
     data class DrawerState(
         val channels: List<com.ultratv.tv.nativeapp.data.db.ChannelEntity>,
         val index: Int,
@@ -168,8 +161,6 @@ class PlayerViewModel @Inject constructor(
         if (s == null) null
         else {
             val now = System.currentTimeMillis()
-            // Keep the full drawer/zap list browsable, but query programme
-            // metadata only around the currently playing row.
             val epgFrom = (s.index - 100).coerceAtLeast(0)
             val epgTo = (s.index + 201).coerceAtMost(s.channels.size)
             val ids = s.channels.subList(epgFrom, epgTo).map { it.id }
@@ -191,7 +182,6 @@ class PlayerViewModel @Inject constructor(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    /** Zap directly to a specific channel (drawer pick). Same flow as zap(). */
     suspend fun zapTo(channel: com.ultratv.tv.nativeapp.data.db.ChannelEntity): String? {
         val s = zapQueue.state.value ?: return null
         val idx = s.channels.indexOfFirst { it.id == channel.id }
@@ -202,7 +192,6 @@ class PlayerViewModel @Inject constructor(
             com.ultratv.tv.nativeapp.ui.common.Toaster.show("Unable to open channel. Try again.")
             return null
         }
-        // Commit the drawer selection only after URL resolution succeeds.
         zapQueue.set(s.channels, channel)
         playback.set(PlaybackContext.Item(
             providerId = channel.providerId, kind = "LIVE", remoteId = channel.remoteId,
@@ -211,25 +200,12 @@ class PlayerViewModel @Inject constructor(
         return resolved
     }
 
-    /**
-     * Reads the last persisted position for the current item and returns the
-     * offset (ms) the player should seek to once the source is ready. Live
-     * channels never resume — they snap to the live edge instead, so this
-     * returns 0 for them. Suspends so the caller can await the DB read and
-     * seek with the actual value (the old fire-and-forget version raced the
-     * seekTo() and never moved the playhead).
-     */
     suspend fun prepareResume(): Long {
         val c = playback.current.value ?: return 0L
         if (c.kind == "LIVE") return 0L
         return history.resumePositionMs(c.providerId, c.kind, c.remoteId)
     }
 
-    /**
-     * Retry helper for the error overlay. Live URLs are re-resolved before
-     * retrying so Stalker/create-link style streams get a fresh playable URL.
-     * VOD/catch-up keep the already resolved URL.
-     */
     suspend fun retryCurrentStream(): String? {
         val item = playback.current.value ?: return null
         if (item.kind != "LIVE") return item.streamUrl
@@ -251,10 +227,9 @@ class PlayerViewModel @Inject constructor(
         return resolved
     }
 
-    /** Persists the current playback position. Called periodically + on dispose. */
     fun recordProgress(positionMs: Long, durationMs: Long) {
         val c = playback.current.value ?: return
-        if (positionMs < 5_000 && c.kind != "LIVE") return    // ignore noise from the first 5s
+        if (positionMs < 5_000 && c.kind != "LIVE") return
         viewModelScope.launch {
             history.record(
                 providerId = c.providerId,
@@ -290,6 +265,9 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     var playbackError by remember { mutableStateOf<String?>(null) }
     var chromeVisible by remember { mutableStateOf(false) }
     var statsOpen by remember { mutableStateOf(false) }
+    var decoderName by remember { mutableStateOf("—") }
+    var droppedFramesTotal by remember { mutableIntStateOf(0) }
+    var displayModeLabel by remember { mutableStateOf("—") }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
 
     BackHandler {
@@ -303,12 +281,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         }
     }
 
-    // Load prefs off the main thread. runBlocking here blocked the main thread
-    // on a DataStore read during composition (ANR risk). produceState starts
-    // null and emits the real values once the first read completes; we show a
-    // black placeholder until then so the player is built exactly once with the
-    // resolved prefs (keeping it stable for the screen's lifetime — changing
-    // buffer / frame-rate / decoder still only takes effect on next launch).
     val loadedPrefs by androidx.compose.runtime.produceState<com.ultratv.tv.nativeapp.data.prefs.UserPrefs?>(
         initialValue = null,
     ) {
@@ -319,38 +291,33 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         return
     }
 
-    // Fire TV / Android TV must treat active playback as foreground viewing.
-    // Keep the display awake only while the player screen is mounted, then
-    // restore the device's normal sleep policy when the user leaves playback.
     DisposableEffect(Unit) {
         val activity = context as? Activity
+        val originalPreferredModeId = activity?.window?.attributes?.preferredDisplayModeId ?: 0
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            activity?.window?.let { window ->
+                val lp = window.attributes
+                if (lp.preferredDisplayModeId != originalPreferredModeId) {
+                    lp.preferredDisplayModeId = originalPreferredModeId
+                    window.attributes = lp
+                }
+            }
         }
     }
 
     val player = remember {
-        // bufferSeconds = how much we want to *hold* in memory; the "start
-        // playback" threshold should always be very small so live TV starts
-        // immediately (the user's complaint: "rien ne se lit" — the player
-        // was waiting on 5 s of buffer before going READY).
         val bufMs = (playbackPrefs.bufferSeconds * 1000).coerceAtLeast(5_000)
         val loadControl = androidx.media3.exoplayer.DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                /* minBufferMs                       = */ 5_000,
-                /* maxBufferMs                       = */ bufMs,
-                /* bufferForPlaybackMs               = */ 500,
-                /* bufferForPlaybackAfterRebufferMs  = */ 1_500,
+                5_000,
+                bufMs,
+                500,
+                1_500,
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
-        // Pluggable DataSource: HTTP/HTTPS go through the default OkHttp
-        // pipeline, rtmp:// + rtmps:// URLs go through RtmpDataSource. The
-        // earlier v1.0.25 attempt only intercepted open() and let the rest
-        // of the lifecycle (read / close / getUri) dangle on a stale inner
-        // — that crashed HTTP playback. The RoutingDataSource below owns
-        // the backing instance for the whole open-read-close cycle.
         val httpFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(15_000)
@@ -387,29 +354,22 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         val mediaSourceFactory = androidx.media3.exoplayer.source.DefaultMediaSourceFactory(context)
             .setDataSourceFactory(routingFactory)
         val renderers = androidx.media3.exoplayer.DefaultRenderersFactory(context).apply {
-            // Hardware renderers first by default; flipping the pref pushes the
-            // software decoder ahead so finicky streams (HEVC main10 on cheap
-            // boxes, malformed HLS variant tags) fall back gracefully.
+            // Keep device hardware codecs first. Extension decoders remain
+            // available where bundled, and Media3 may fall back to another
+            // decoder if the preferred codec cannot initialize cleanly.
             setExtensionRendererMode(
-                if (playbackPrefs.preferSoftwareDecoder)
-                    androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER
-                else
-                    androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
+                androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON
             )
+            setEnableDecoderFallback(true)
         }
         ExoPlayer.Builder(context, renderers)
             .setLoadControl(loadControl)
             .setMediaSourceFactory(mediaSourceFactory)
             .build().apply {
             playWhenReady = true
-            // When an adaptive source exposes multiple video renditions, prefer
-            // the highest supported bitrate instead of settling on a soft/low
-            // rendition. Single-rendition MPEG-TS streams are unaffected.
             trackSelectionParameters = trackSelectionParameters.buildUpon()
                 .setForceHighestSupportedBitrate(true)
                 .build()
-            // Surface playback failures to the dashboard so we can see WHY a
-            // stream silently never starts (codec, 403, DNS, etc).
             addListener(object : androidx.media3.common.Player.Listener {
                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                     playbackError = when (error.errorCode) {
@@ -424,21 +384,53 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                         else -> "Playback failed"
                     }
                 }
+
                 override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
-                    if (!playbackPrefs.autoFrameRate) return
                     val act = (context as? android.app.Activity) ?: return
+                    val display = act.windowManager.defaultDisplay ?: return
+                    val currentMode = display.mode
+                    displayModeLabel = formatDisplayMode(currentMode)
+                    if (!playbackPrefs.autoFrameRate) return
+
                     val fmt = currentTracks.groups
                         .firstOrNull { it.type == androidx.media3.common.C.TRACK_TYPE_VIDEO }
-                        ?.let { g -> (0 until g.length).firstOrNull { g.isTrackSelected(it) }?.let { g.getTrackFormat(it) } }
+                        ?.let { g ->
+                            (0 until g.length)
+                                .firstOrNull { g.isTrackSelected(it) }
+                                ?.let { g.getTrackFormat(it) }
+                        }
                     val fps = fmt?.frameRate ?: return
                     if (fps <= 0f) return
-                    // Pick the display mode whose refresh is the closest integer
-                    // multiple of fps (so 24 fps → 24/48/72 Hz, 50 fps → 50/100 Hz).
-                    val display = act.windowManager.defaultDisplay ?: return
-                    val target = display.supportedModes.minByOrNull { m ->
-                        val multiple = (m.refreshRate / fps).coerceAtLeast(1f)
-                        kotlin.math.abs(m.refreshRate - fps * kotlin.math.round(multiple))
-                    } ?: return
+
+                    // Never trade output resolution for refresh-rate matching.
+                    // The previous matcher searched every supported display mode,
+                    // so a 4K Fire TV output could accidentally be switched to a
+                    // 1080p/720p mode merely because its refresh rate was a clean
+                    // multiple of the stream FPS. That makes a genuine 1080p feed
+                    // look softer and can also introduce an unnecessary HDMI mode
+                    // change. Restrict candidates to the current output resolution.
+                    val sameResolution = display.supportedModes.filter {
+                        it.physicalWidth == currentMode.physicalWidth &&
+                            it.physicalHeight == currentMode.physicalHeight
+                    }
+                    val candidates = sameResolution.ifEmpty { listOf(currentMode) }
+                    val exactMultiples = candidates.filter { mode ->
+                        val ratio = mode.refreshRate / fps
+                        val nearest = kotlin.math.round(ratio)
+                        nearest >= 1f && kotlin.math.abs(ratio - nearest) <= 0.02f
+                    }
+                    // When both 30 and 60 Hz are valid for a 30-fps source,
+                    // prefer 60 Hz rather than dropping the display to 30 Hz.
+                    // This preserves smoother motion/UI while still presenting
+                    // each video frame for an exact integer number of refreshes.
+                    val target = exactMultiples.maxByOrNull { it.refreshRate }
+                        ?: candidates.minByOrNull { mode ->
+                            val ratio = (mode.refreshRate / fps).coerceAtLeast(1f)
+                            val nearest = kotlin.math.round(ratio)
+                            kotlin.math.abs(mode.refreshRate - fps * nearest)
+                        }
+                        ?: currentMode
+                    displayModeLabel = formatDisplayMode(target)
                     val lp = act.window.attributes
                     if (lp.preferredDisplayModeId != target.modeId) {
                         lp.preferredDisplayModeId = target.modeId
@@ -447,27 +439,42 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                 }
 
                 override fun onPlaybackStateChanged(state: Int) {
-                    val name = when (state) {
-                        androidx.media3.common.Player.STATE_IDLE -> "idle"
-                        androidx.media3.common.Player.STATE_BUFFERING -> "buffering"
-                        androidx.media3.common.Player.STATE_READY -> "ready"
-                        androidx.media3.common.Player.STATE_ENDED -> "ended"
-                        else -> "?"
-                    }
                     if (state == androidx.media3.common.Player.STATE_READY) {
                         playbackError = null
                     }
                 }
             })
+            addAnalyticsListener(object : androidx.media3.exoplayer.analytics.AnalyticsListener {
+                override fun onVideoDecoderInitialized(
+                    eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
+                    decoderNameValue: String,
+                    initializedTimestampMs: Long,
+                    initializationDurationMs: Long,
+                ) {
+                    decoderName = decoderNameValue
+                }
+
+                override fun onDroppedVideoFrames(
+                    eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
+                    droppedFrames: Int,
+                    elapsedMs: Long,
+                ) {
+                    droppedFramesTotal += droppedFrames
+                }
+            })
         }
     }
 
-    // Stream-stats overlay: tracks codec/resolution/bitrate while playing.
     var stats by remember { mutableStateOf(StreamStats()) }
-    LaunchedEffect(statsOpen, isLive, chromeVisible) {
+    LaunchedEffect(statsOpen, isLive, chromeVisible, decoderName, droppedFramesTotal, displayModeLabel) {
         if (!statsOpen && !(isLive && chromeVisible)) return@LaunchedEffect
         while (true) {
-            stats = StreamStats.read(player)
+            stats = StreamStats.read(
+                player = player,
+                decoderName = decoderName,
+                droppedFrames = droppedFramesTotal,
+                displayMode = displayModeLabel,
+            )
             delay(1_000)
         }
     }
@@ -479,9 +486,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         }
     }
 
-    // Sleep-timer: when > 0, stops playback at the given timestamp. The
-    // LaunchedEffect below polls every 5s and pauses + closes the screen
-    // when the deadline is reached.
     var sleepDeadlineMs by remember { mutableLongStateOf(0L) }
     LaunchedEffect(sleepDeadlineMs) {
         if (sleepDeadlineMs <= 0L) return@LaunchedEffect
@@ -493,12 +497,20 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     LaunchedEffect(currentUrl) {
         if (currentUrl.isNotBlank()) {
             playbackError = null
+            decoderName = "—"
+            droppedFramesTotal = 0
+            // IPTV channels regularly switch codec parameters, resolution and
+            // colour metadata between zaps. Explicitly stop/clear the previous
+            // Live source before preparing the next one so MediaCodec starts
+            // from a clean stream state instead of carrying stale reference
+            // frames across a channel change.
+            if (isLive && player.mediaItemCount > 0) {
+                player.stop()
+                player.clearMediaItems()
+            }
             player.setMediaItem(MediaItem.fromUri(currentUrl))
             player.prepare()
-            // Seek to last persisted position if VOD/episode has one. Awaits the
-            // DB read so the seek uses the real value (was racing before).
             val resume = vm.prepareResume()
-            // Skip stale "near-end" positions so credits don't auto-replay.
             if (resume > 5_000) {
                 player.seekTo(resume)
             }
@@ -509,11 +521,9 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         player.playbackParameters = androidx.media3.common.PlaybackParameters(playbackSpeed)
     }
 
-    // Periodically record playback position so "Continue watching" works even
-    // if the user closes the app mid-playback (no onDispose fires for kills).
     LaunchedEffect(player) {
         while (true) {
-            delay(10_000)   // every 10s
+            delay(10_000)
             if (player.duration > 0) {
                 vm.recordProgress(player.currentPosition, player.duration)
             }
@@ -527,10 +537,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         }
     }
 
-    // Fire TV Live controls:
-    // UP/DOWN = zap, LEFT = channel drawer, OK = temporary info overlay.
-    // The built-in Media3 controller is disabled for Live because its touch-first
-    // buttons do not map cleanly to Fire TV D-pad navigation.
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
     Box(
@@ -573,7 +579,8 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                         true
                     }
                     Key.DirectionRight -> {
-                        chromeVisible = true
+                        statsOpen = true
+                        chromeVisible = false
                         true
                     }
                     else -> false
@@ -582,10 +589,10 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     ) {
         AndroidView(
             factory = { ctx ->
-                // Fire TV can decode AVC successfully while still presenting a black
-                // SurfaceView when embedded in this Compose hierarchy. Inflate a
-                // TextureView-backed PlayerView instead so decoded frames are composed
-                // into the same UI layer as the rest of Fleezy's player chrome.
+                // Keep the TextureView compatibility path: SurfaceView produced
+                // black video on the Fire TV Compose hierarchy during hardware
+                // testing. The quality fixes above deliberately avoid undoing
+                // that known-good rendering workaround.
                 (android.view.LayoutInflater.from(ctx).inflate(
                     com.ultratv.tv.nativeapp.R.layout.fleezy_player_view,
                     null,
@@ -611,10 +618,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             modifier = Modifier.fillMaxSize(),
         )
 
-        // Vertical-drag gestures for touch users: right strip = volume,
-        // left strip = brightness. The strips are narrow (120 dp) so the
-        // central PlayerView still receives tap-to-toggle-controls. On
-        // TV the D-pad never produces drag events, so this is inert there.
         val audio = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
         val activity = remember(context) { context as? Activity }
         val maxVol = remember { audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC) }
@@ -628,7 +631,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
         LaunchedEffect(gestureLabel) {
             if (gestureLabel != null) { delay(900); gestureLabel = null }
         }
-        // Right strip: volume
         var volAccum by remember { mutableFloatStateOf(0f) }
         Box(
             Modifier.align(Alignment.CenterEnd).width(120.dp).fillMaxHeight()
@@ -647,7 +649,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                     }
                 },
         )
-        // Left strip: brightness
         var brAccum by remember { mutableFloatStateOf(0f) }
         Box(
             Modifier.align(Alignment.CenterStart).width(120.dp).fillMaxHeight()
@@ -670,7 +671,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                     }
                 },
         )
-        // Transient indicator
         gestureLabel?.let { lbl ->
             Box(
                 Modifier
@@ -688,9 +688,12 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                 Column {
                     Text(currentTitle, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     if (isLive) {
-                        val quality = listOf(stats.resolution, stats.videoBitrate)
-                            .filter { it != "—" }
-                            .joinToString(" · ")
+                        val quality = listOf(
+                            stats.resolution,
+                            stats.frameRate,
+                            stats.videoCodec,
+                            stats.videoBitrate,
+                        ).filter { it != "—" }.joinToString(" · ")
                         if (quality.isNotBlank()) {
                             Text(
                                 quality,
@@ -699,7 +702,7 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                             )
                         }
                         Text(
-                            "OK info · LEFT channels · ▲ ▼ change channel · BACK exit",
+                            "OK info · RIGHT stats · LEFT channels · ▲ ▼ change channel · BACK exit",
                             color = Color.White.copy(alpha = 0.55f),
                             fontSize = 11.sp,
                         )
@@ -738,6 +741,8 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                             playbackError = null
                             val retryUrl = vm.retryCurrentStream() ?: currentUrl
                             currentUrl = retryUrl
+                            player.stop()
+                            player.clearMediaItems()
                             player.setMediaItem(MediaItem.fromUri(retryUrl))
                             player.prepare()
                             player.play()
@@ -754,60 +759,54 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
 
         if (!isLive) {
             FlowRow(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .widthIn(max = 760.dp)
-                .padding(24.dp),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-            maxItemsInEachRow = 4,
-        ) {
-            // Sleep timer menu — anchored bottom-right next to the external-player button.
-            var sleepMenu by remember { mutableStateOf(false) }
-            Button(onClick = { sleepMenu = !sleepMenu }) {
-                Text(
-                    if (sleepDeadlineMs > 0L) {
-                        val mins = ((sleepDeadlineMs - System.currentTimeMillis()) / 60_000L).coerceAtLeast(0L)
-                        "💤 ${mins}min"
-                    } else "💤 " + S.sleepLabel
-                )
-            }
-            if (sleepMenu) {
-                Column(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .background(Color(0xCC000000), androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                        .padding(10.dp),
-                ) {
-                    SleepOption(S.sleepMin15) { sleepDeadlineMs = System.currentTimeMillis() + 15 * 60_000; sleepMenu = false }
-                    SleepOption(S.sleepMin30) { sleepDeadlineMs = System.currentTimeMillis() + 30 * 60_000; sleepMenu = false }
-                    SleepOption(S.sleep1h) { sleepDeadlineMs = System.currentTimeMillis() + 60 * 60_000; sleepMenu = false }
-                    SleepOption(S.sleep2h) { sleepDeadlineMs = System.currentTimeMillis() + 120 * 60_000; sleepMenu = false }
-                    if (sleepDeadlineMs > 0L) {
-                        SleepOption(S.sleepCancel) { sleepDeadlineMs = 0L; sleepMenu = false }
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .widthIn(max = 760.dp)
+                    .padding(24.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                maxItemsInEachRow = 4,
+            ) {
+                var sleepMenu by remember { mutableStateOf(false) }
+                Button(onClick = { sleepMenu = !sleepMenu }) {
+                    Text(
+                        if (sleepDeadlineMs > 0L) {
+                            val mins = ((sleepDeadlineMs - System.currentTimeMillis()) / 60_000L).coerceAtLeast(0L)
+                            "💤 ${mins}min"
+                        } else "💤 " + S.sleepLabel
+                    )
+                }
+                if (sleepMenu) {
+                    Column(
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .background(Color(0xCC000000), androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
+                            .padding(10.dp),
+                    ) {
+                        SleepOption(S.sleepMin15) { sleepDeadlineMs = System.currentTimeMillis() + 15 * 60_000; sleepMenu = false }
+                        SleepOption(S.sleepMin30) { sleepDeadlineMs = System.currentTimeMillis() + 30 * 60_000; sleepMenu = false }
+                        SleepOption(S.sleep1h) { sleepDeadlineMs = System.currentTimeMillis() + 60 * 60_000; sleepMenu = false }
+                        SleepOption(S.sleep2h) { sleepDeadlineMs = System.currentTimeMillis() + 120 * 60_000; sleepMenu = false }
+                        if (sleepDeadlineMs > 0L) {
+                            SleepOption(S.sleepCancel) { sleepDeadlineMs = 0L; sleepMenu = false }
+                        }
                     }
                 }
-            }
-            if (!isLive) {
                 Button(onClick = { tracksOpen = true }) { Text("🎚 ${S.playerTracks}") }
-            }
-            if (isLive) {
-                Button(onClick = { vm.recordLive(120, S.recordingQueuedTemplate) }) { Text("⏺ ${S.playerRecord} (2h)") }
-            }
-            Button(onClick = { displayMenu = !displayMenu }) { Text("📐 ${S.playerDisplay}") }
-            Button(onClick = { statsOpen = !statsOpen }) {
-                Text("📊 " + S.playerStats)
-            }
-            Button(onClick = {
-                runCatching {
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(Uri.parse(currentUrl), "video/*")
-                        putExtra("title", currentTitle)
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    context.startActivity(Intent.createChooser(intent, S.recordingsOpenWith))
+                Button(onClick = { displayMenu = !displayMenu }) { Text("📐 ${S.playerDisplay}") }
+                Button(onClick = { statsOpen = !statsOpen }) {
+                    Text("📊 " + S.playerStats)
                 }
-            }) { Text(S.playerExternal) }
+                Button(onClick = {
+                    runCatching {
+                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(Uri.parse(currentUrl), "video/*")
+                            putExtra("title", currentTitle)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(Intent.createChooser(intent, S.recordingsOpenWith))
+                    }
+                }) { Text(S.playerExternal) }
             }
         }
         if (displayMenu) {
@@ -862,10 +861,10 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
             Column(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(top = 110.dp, end = 60.dp)
-                    .width(280.dp)
+                    .padding(top = 72.dp, end = 40.dp)
+                    .width(330.dp)
                     .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
-                    .background(Color(0xB3000000))
+                    .background(Color(0xD0000000))
                     .border(1.dp, T.Line2, androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
                     .padding(16.dp),
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(4.dp),
@@ -882,12 +881,17 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                         letterSpacing = 2.3.sp,
                         fontWeight = FontWeight.Medium,
                     )
+                    if (isLive) {
+                        Text("BACK to close", color = T.Fg3, fontSize = 9.sp)
+                    }
                 }
                 androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
                 StatRow(S.statResolution, stats.resolution)
                 StatRow(S.statVideoCodec, stats.videoCodec)
                 StatRow(S.statFrameRate, stats.frameRate)
                 StatRow(S.statVideoBitrate, stats.videoBitrate)
+                StatRow("Decoder", stats.decoder)
+                StatRow("TV output", stats.displayMode)
                 StatRow(S.statAudioCodec, stats.audioCodec)
                 StatRow(S.statAudioChannels, stats.audioChannels)
                 StatRow(S.statBuffered, stats.bufferedAhead)
@@ -897,9 +901,6 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
     }
 }
 
-/** Subtitle + audio track picker for VOD playback. Reads the current Tracks
- *  object from the player and writes back a TrackSelectionOverride when the
- *  user picks a track. */
 @OptIn(androidx.media3.common.util.UnstableApi::class, androidx.tv.material3.ExperimentalTvMaterial3Api::class)
 @Composable
 private fun TracksDialog(player: ExoPlayer, onDismiss: () -> Unit) {
@@ -923,7 +924,6 @@ private fun TracksDialog(player: ExoPlayer, onDismiss: () -> Unit) {
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
             )
-            // Audio tracks
             val audioGroups = tracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_AUDIO }
             androidx.tv.material3.Text(S.playerAudioTemplate.format(audioGroups.sumOf { it.length }), color = androidx.tv.material3.MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             audioGroups.forEach { group ->
@@ -947,7 +947,6 @@ private fun TracksDialog(player: ExoPlayer, onDismiss: () -> Unit) {
                     ) { androidx.tv.material3.Text(label, fontSize = 13.sp) }
                 }
             }
-            // Subtitle tracks
             val subGroups = tracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_TEXT }
             androidx.tv.material3.Text(S.playerSubtitlesTemplate.format(subGroups.sumOf { it.length }), color = androidx.tv.material3.MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             androidx.tv.material3.Button(
@@ -989,13 +988,11 @@ private fun StatRow(label: String, value: String) {
     androidx.compose.foundation.layout.Row(
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
     ) {
-        Text(label, color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, modifier = Modifier.width(90.dp))
+        Text(label, color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, modifier = Modifier.width(100.dp))
         Text(value, color = Color.White, fontSize = 11.sp)
     }
 }
 
-/** PlayerView.resizeMode mapping. RESIZE_MODE_* values are ints exposed by
- *  androidx.media3.ui.AspectRatioFrameLayout. */
 private enum class AspectMode(val label: String, val resizeMode: Int) {
     Fit("Fit", androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIT),
     Fill("Fill", androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FILL),
@@ -1004,11 +1001,16 @@ private enum class AspectMode(val label: String, val resizeMode: Int) {
     FixedHeight("4:3", androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT),
 }
 
+private fun formatDisplayMode(mode: android.view.Display.Mode): String =
+    "${mode.physicalWidth}×${mode.physicalHeight} @ ${"%.2f".format(mode.refreshRate)} Hz"
+
 private data class StreamStats(
     val resolution: String = "—",
     val videoCodec: String = "—",
     val frameRate: String = "—",
     val videoBitrate: String = "—",
+    val decoder: String = "—",
+    val displayMode: String = "—",
     val audioCodec: String = "—",
     val audioChannels: String = "—",
     val bufferedAhead: String = "—",
@@ -1016,19 +1018,30 @@ private data class StreamStats(
 ) {
     companion object {
         @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-        fun read(player: ExoPlayer): StreamStats {
+        fun read(
+            player: ExoPlayer,
+            decoderName: String,
+            droppedFrames: Int,
+            displayMode: String,
+        ): StreamStats {
             val v = player.videoFormat
             val a = player.audioFormat
             val bufferedMs = (player.bufferedPosition - player.currentPosition).coerceAtLeast(0)
+            val codec = listOfNotNull(
+                v?.sampleMimeType?.removePrefix("video/"),
+                v?.codecs?.takeIf { it.isNotBlank() },
+            ).distinct().joinToString(" / ").ifBlank { "—" }
             return StreamStats(
                 resolution = v?.let { "${it.width}×${it.height}" } ?: "—",
-                videoCodec = v?.sampleMimeType?.removePrefix("video/") ?: "—",
-                frameRate = v?.frameRate?.takeIf { it > 0 }?.let { "%.1f fps".format(it) } ?: "—",
+                videoCodec = codec,
+                frameRate = v?.frameRate?.takeIf { it > 0 }?.let { "%.2f fps".format(it) } ?: "—",
                 videoBitrate = v?.bitrate?.takeIf { it > 0 }?.let { "${it / 1000} kbps" } ?: "—",
+                decoder = decoderName,
+                displayMode = displayMode,
                 audioCodec = a?.sampleMimeType?.removePrefix("audio/") ?: "—",
-                audioChannels = a?.channelCount?.toString() ?: "—",
+                audioChannels = a?.channelCount?.takeIf { it > 0 }?.toString() ?: "—",
                 bufferedAhead = "${bufferedMs / 1000}s",
-                droppedFrames = "n/a",
+                droppedFrames = droppedFrames.toString(),
             )
         }
     }

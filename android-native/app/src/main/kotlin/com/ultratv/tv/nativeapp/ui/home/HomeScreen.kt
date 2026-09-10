@@ -223,8 +223,7 @@ fun HomeScreen(
                     subtitle = h.kind.lowercase().replaceFirstChar { it.uppercase() },
                     aspect = 16f / 9f,
                 ) {
-                    vm.playFromHistory(h)
-                    onPlay(h.streamUrl, h.title)
+                    vm.playFromHistory(h, onPlay)
                 }
             }
         }

@@ -1,7 +1,6 @@
 package com.ultratv.tv.nativeapp.ui.player
 
 import android.app.Activity
-import android.os.Looper
 import android.view.Display
 import kotlin.math.abs
 import kotlin.math.round
@@ -9,9 +8,9 @@ import kotlin.math.round
 /**
  * Estimates broadcast cadence from decoded video presentation timestamps when
  * the container/codec does not publish a frame rate. IPTV MPEG-TS feeds often
- * omit Format.frameRate even though their PTS cadence is stable. Knowing the
- * cadence lets Fire TV stay on an exact 50/59.94-family output mode instead of
- * relying on TV-side motion conversion.
+ * omit Format.frameRate even though their PTS cadence is stable. The measured
+ * cadence is still useful for diagnostics even while automatic display-mode
+ * switching is disabled for playback stability.
  */
 internal class LiveCadenceEstimator(
     private val maxSamples: Int = 45,
@@ -83,29 +82,20 @@ internal fun chooseSameResolutionMode(display: Display, fps: Float): Display.Mod
         ?: current
 }
 
+/**
+ * Automatic display-mode switching is intentionally disabled for now.
+ *
+ * Build 127 proved playback could decode/render before a cadence-triggered
+ * window mutation crashed ExoPlayer. Moving the mutation to the UI thread
+ * removed that crash in Build 128, but Fire TV could then recreate the video
+ * output during the mode change and leave the TextureView black. Until AFR is
+ * implemented with a Fire-TV-safe surface lifecycle, keep the device's current
+ * display mode and preserve uninterrupted playback.
+ */
+@Suppress("UNUSED_PARAMETER")
 internal fun applyCadenceMode(activity: Activity, fps: Float): String {
     val display = activity.windowManager.defaultDisplay ?: return "—"
-    val target = chooseSameResolutionMode(display, fps)
-
-    // Media3's video-frame metadata callback runs on ExoPlayer's playback
-    // thread, but Android window attributes may only be changed on the UI
-    // thread. Posting the mode switch prevents CalledFromWrongThreadException
-    // from being surfaced by ExoPlayer as a playback failure.
-    val applyMode = {
-        val lp = activity.window.attributes
-        if (lp.preferredDisplayModeId != target.modeId) {
-            lp.preferredDisplayModeId = target.modeId
-            activity.window.attributes = lp
-        }
-    }
-
-    if (Looper.myLooper() == Looper.getMainLooper()) {
-        applyMode()
-    } else {
-        activity.runOnUiThread(applyMode)
-    }
-
-    return formatDisplayMode(target)
+    return formatDisplayMode(display.mode)
 }
 
 internal fun formatDisplayMode(mode: Display.Mode): String =

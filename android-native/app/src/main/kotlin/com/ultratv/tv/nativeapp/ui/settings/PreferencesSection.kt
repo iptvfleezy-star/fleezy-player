@@ -67,11 +67,10 @@ fun PreferencesSection(vm: AppViewModel = hiltViewModel()) {
             hint = "Match the TV's refresh rate to the stream (24/25/30/50/60). Reduces judder on motion.",
             value = p.autoFrameRate,
         ) { vm.setAutoFrameRate(it) }
-        SwitchRow(
-            title = "Software decoder",
-            hint = "Use the software video decoder for channels with colour glitches, smearing or hardware-decoder artifacts. Reopen playback after changing this.",
-            value = p.preferSoftwareDecoder,
-        ) { vm.setPreferSoftwareDecoder(it) }
+        // Software-decoder preference remains in the data model for backwards
+        // compatibility, but is intentionally not exposed: the app does not
+        // bundle a general H.264/HEVC software video decoder, so presenting it
+        // as a guaranteed hardware/software switch would be misleading.
         PrefRow(label = "Guide time offset (min)") {
             listOf(-120, -60, -30, 0, 30, 60, 120).forEach { off ->
                 ChoiceChip(

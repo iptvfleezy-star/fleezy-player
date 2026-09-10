@@ -32,6 +32,7 @@ import javax.inject.Inject
 const val CATEGORY_ALL = "__all__"
 const val CATEGORY_FAVORITES = "__favorites__"
 private const val CATEGORY_DEFAULT = "__default__"
+private const val MAX_BULK_EPG_CHANNELS = 500
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -119,7 +120,11 @@ class LiveViewModel @Inject constructor(
             kotlinx.coroutines.delay(700)
             runCatching { catalog.refreshShortEpg(channel.id) }
             shortEpgFetchedAt[channel.id] = System.currentTimeMillis()
-            refreshNowNext(channels.value.map { it.id })
+            // Refresh only the focused channel. On an explicit "All channels"
+            // view the backing list can contain tens of thousands of entries.
+            // Re-querying every channel after a 700 ms hover defeats the point
+            // of the short-EPG path and causes avoidable Room work.
+            refreshNowNext(listOf(channel.id), merge = true)
         }
     }
 
@@ -146,22 +151,25 @@ class LiveViewModel @Inject constructor(
     // thread — so anything referencing a not-yet-initialised property in
     // an init block reads `null` and crashes (#LiveViewModel NPE).
 
-    private suspend fun refreshNowNext(ids: List<Long>) {
-        if (ids.isEmpty()) return
+    private suspend fun refreshNowNext(ids: List<Long>, merge: Boolean = false) {
+        if (ids.isEmpty()) {
+            if (!merge) _nowNext.value = emptyMap()
+            return
+        }
         val now = System.currentTimeMillis()
-        // SQLite caps host parameters at 999. A 50 k-channel playlist would
-        // otherwise crash with "too many SQL variables". Split into 500-id
-        // chunks and concatenate.
+        // Callers keep bulk refreshes to a TV-sized working set. Chunking stays
+        // here as a safety net for future call sites and SQLite's host limit.
         val rows = ids.chunked(500).flatMap { chunk ->
             epgDao.rangeForChannels(chunk, now - 30 * 60_000, now + 6 * 60 * 60_000)
         }
         val byCh = rows.groupBy { it.channelId }
-        _nowNext.value = ids.associateWith { id ->
+        val updated = ids.associateWith { id ->
             val list = byCh[id].orEmpty()
             val nowProg = list.firstOrNull { it.startMs <= now && it.endMs > now }
             val nextProg = list.firstOrNull { it.startMs > now }
             nowProg to nextProg
         }
+        _nowNext.value = if (merge) _nowNext.value + updated else updated
     }
 
     fun toggleLock(channel: ChannelEntity) {
@@ -340,13 +348,18 @@ class LiveViewModel @Inject constructor(
         viewModelScope.launch {
             channels.collect { list ->
                 if (list.isEmpty()) { _nowNext.value = emptyMap(); return@collect }
-                refreshNowNext(list.map { it.id })
+                // Preload enough rows for immediate TV browsing, not an entire
+                // provider-wide lineup. Channels beyond this window populate
+                // on focus through ensureShortEpg().
+                refreshNowNext(list.take(MAX_BULK_EPG_CHANNELS).map { it.id })
             }
         }
         viewModelScope.launch {
             while (true) {
                 kotlinx.coroutines.delay(60_000)
-                refreshNowNext(channels.value.map { it.id })
+                refreshNowNext(
+                    channels.value.take(MAX_BULK_EPG_CHANNELS).map { it.id }
+                )
             }
         }
     }

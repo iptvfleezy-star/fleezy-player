@@ -15,13 +15,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -57,6 +62,18 @@ internal fun LiveDrawer(
     val s = LocalStrings.current
     val t = UltraTokens
     val f = UltraFonts
+    val listState = rememberLazyListState()
+    val currentFocusRequester = remember { FocusRequester() }
+    val currentIndex = remember(entries) { entries.indexOfFirst { it.isCurrent } }
+
+    LaunchedEffect(currentIndex) {
+        if (currentIndex >= 0) {
+            listState.scrollToItem(currentIndex)
+            androidx.compose.runtime.withFrameNanos { }
+            runCatching { currentFocusRequester.requestFocus() }
+        }
+    }
+
     BackHandler { onDismiss() }
     Row(Modifier.fillMaxSize()) {
         // Click-through area on the left so OK / BACK reach us first.
@@ -90,12 +107,20 @@ internal fun LiveDrawer(
             )
             Spacer(Modifier.height(14.dp))
             LazyColumn(
+                state = listState,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                items(items = entries, key = { entry -> entry.channel.id }) { e ->
-                    val idx = entries.indexOf(e)
+                itemsIndexed(
+                    items = entries,
+                    key = { _, entry -> entry.channel.id },
+                ) { _, e ->
                     Card(
                         onClick = { onPick(e.channel) },
+                        modifier = if (e.isCurrent) {
+                            Modifier.focusRequester(currentFocusRequester)
+                        } else {
+                            Modifier
+                        },
                         shape = CardDefaults.shape(RoundedCornerShape(10.dp)),
                         colors = ultraCardColors(
                             containerColor = if (e.isCurrent) t.AccentSoft else Color.Transparent,
@@ -106,7 +131,7 @@ internal fun LiveDrawer(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                "%02d".format(idx + 1),
+                                "%02d".format(e.position),
                                 color = if (e.isCurrent) t.Accent else t.Fg4,
                                 fontSize = 12.sp,
                                 fontFamily = f.Mono,

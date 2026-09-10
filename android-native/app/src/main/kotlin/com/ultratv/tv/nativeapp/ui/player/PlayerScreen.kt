@@ -135,6 +135,7 @@ class PlayerViewModel @Inject constructor(
      *  Used by the OK-triggered drawer overlay. */
     data class DrawerEntry(
         val channel: com.ultratv.tv.nativeapp.data.db.ChannelEntity,
+        val position: Int,
         val now: com.ultratv.tv.nativeapp.data.db.EpgEntity?,
         val next: com.ultratv.tv.nativeapp.data.db.EpgEntity?,
         val isCurrent: Boolean,
@@ -143,9 +144,13 @@ class PlayerViewModel @Inject constructor(
     val queue: StateFlow<List<DrawerEntry>> = zapQueue.state.map { s ->
         if (s == null) emptyList()
         else {
-            val ids = s.channels.map { it.id }
             val now = System.currentTimeMillis()
-            // SQLite IN-list cap: 999 host params. Chunk to be safe with big playlists.
+            // Keep the full drawer/zap list, but query programme metadata only
+            // around the currently playing row. An All-channels queue can hold
+            // tens of thousands of stations.
+            val epgFrom = (s.index - 100).coerceAtLeast(0)
+            val epgTo = (s.index + 201).coerceAtMost(s.channels.size)
+            val ids = s.channels.subList(epgFrom, epgTo).map { it.id }
             val rows = ids.chunked(500).flatMap { chunk ->
                 epgDao.rangeForChannels(chunk, now - 30 * 60_000, now + 4 * 60 * 60_000)
             }
@@ -154,6 +159,7 @@ class PlayerViewModel @Inject constructor(
                 val list = byCh[c.id].orEmpty()
                 DrawerEntry(
                     channel = c,
+                    position = idx + 1,
                     now = list.firstOrNull { it.startMs <= now && it.endMs > now },
                     next = list.firstOrNull { it.startMs > now },
                     isCurrent = idx == s.index,

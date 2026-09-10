@@ -1,6 +1,10 @@
 package com.ultratv.tv.nativeapp.ui.parental
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +23,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -91,6 +99,26 @@ private fun PinSetDialog(onCancel: () -> Unit, onConfirm: (String) -> Unit) {
     var p1 by remember { mutableStateOf("") }
     var p2 by remember { mutableStateOf("") }
     val S = com.ultratv.tv.nativeapp.i18n.LocalStrings.current
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val cancelFocusRequester = remember { FocusRequester() }
+
+    val dismiss = {
+        keyboardController?.hide()
+        focusManager.clearFocus(force = true)
+        onCancel()
+    }
+    val confirm = {
+        keyboardController?.hide()
+        focusManager.clearFocus(force = true)
+        onConfirm(p1)
+    }
+
+    BackHandler(onBack = dismiss)
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        runCatching { cancelFocusRequester.requestFocus() }
+    }
+
     Box(
         Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)),
         contentAlignment = Alignment.Center,
@@ -106,9 +134,12 @@ private fun PinSetDialog(onCancel: () -> Unit, onConfirm: (String) -> Unit) {
             PinField(value = p1, onChange = { p1 = it.filter { c -> c.isDigit() }.take(4) }, hint = S.parentalPinHint)
             PinField(value = p2, onChange = { p2 = it.filter { c -> c.isDigit() }.take(4) }, hint = S.parentalConfirmHint)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onCancel) { Text(S.cancel) }
                 Button(
-                    onClick = { if (p1.length == 4 && p1 == p2) onConfirm(p1) },
+                    onClick = dismiss,
+                    modifier = Modifier.focusRequester(cancelFocusRequester),
+                ) { Text(S.cancel) }
+                Button(
+                    onClick = { if (p1.length == 4 && p1 == p2) confirm() },
                     enabled = p1.length == 4 && p1 == p2,
                 ) { Text(S.save) }
             }
@@ -117,11 +148,19 @@ private fun PinSetDialog(onCancel: () -> Unit, onConfirm: (String) -> Unit) {
 }
 
 @Composable
-private fun PinField(value: String, onChange: (String) -> Unit, hint: String) {
+internal fun PinField(value: String, onChange: (String) -> Unit, hint: String) {
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
     Box(
         Modifier
             .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.background)
+            .border(
+                1.dp,
+                if (focused) com.ultratv.tv.nativeapp.ui.theme.UltraTokens.Accent
+                else com.ultratv.tv.nativeapp.ui.theme.UltraTokens.Line2,
+                RoundedCornerShape(10.dp),
+            )
             .padding(12.dp),
     ) {
         BasicTextField(
@@ -132,6 +171,7 @@ private fun PinField(value: String, onChange: (String) -> Unit, hint: String) {
             visualTransformation = PasswordVisualTransformation(),
             textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontSize = 22.sp, fontWeight = FontWeight.Bold),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            interactionSource = interaction,
             decorationBox = { inner ->
                 if (value.isEmpty()) Text(hint, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
                 inner()

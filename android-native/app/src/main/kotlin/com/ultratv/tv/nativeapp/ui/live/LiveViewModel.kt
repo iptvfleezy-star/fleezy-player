@@ -31,6 +31,7 @@ import javax.inject.Inject
  */
 const val CATEGORY_ALL = "__all__"
 const val CATEGORY_FAVORITES = "__favorites__"
+private const val CATEGORY_DEFAULT = "__default__"
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -174,7 +175,7 @@ class LiveViewModel @Inject constructor(
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
 
-    private val _selectedCategory = MutableStateFlow<String>(CATEGORY_ALL)
+    private val _selectedCategory = MutableStateFlow<String>(CATEGORY_DEFAULT)
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
     private val _resolving = MutableStateFlow(false)
@@ -219,7 +220,7 @@ class LiveViewModel @Inject constructor(
             Triple(ps, cat, hidden)
         }.flatMapLatest { (ps, cat, hidden) ->
             val pid = ps.firstOrNull { it.active }?.id ?: ps.firstOrNull()?.id
-            if (pid == null) {
+            if (pid == null || cat == CATEGORY_DEFAULT) {
                 flowOf(emptyList())
             } else if (cat == CATEGORY_FAVORITES) {
                 // Favorites should stay fast even on huge providers: resolve only
@@ -321,6 +322,18 @@ class LiveViewModel @Inject constructor(
     }
 
     init {
+        // Start on the first visible provider category rather than materialising
+        // the provider-wide All channels list immediately. Large Xtream lineups
+        // can contain tens of thousands of channels; All remains available when
+        // the customer explicitly selects it.
+        viewModelScope.launch {
+            categories.collect { list ->
+                if (_selectedCategory.value == CATEGORY_DEFAULT && list.isNotEmpty()) {
+                    _selectedCategory.value = list.first().remoteId
+                }
+            }
+        }
+
         // Run AFTER `channels` is initialised. viewModelScope is Main.immediate,
         // so referencing channels in an init block at the top of the class read
         // a null backing field and crashed.

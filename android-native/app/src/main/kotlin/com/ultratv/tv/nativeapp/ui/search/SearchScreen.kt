@@ -126,7 +126,11 @@ class SearchViewModel @Inject constructor(
         onReady: (url: String, title: String) -> Unit,
     ) {
         viewModelScope.launch {
-            val channel = catalog.channelById(programme.channelId) ?: return@launch
+            val channel = catalog.channelById(programme.channelId)
+            if (channel == null) {
+                com.ultratv.tv.nativeapp.ui.common.Toaster.show("That channel is no longer available.")
+                return@launch
+            }
             playResolvedChannel(channel, onReady)
         }
     }
@@ -144,7 +148,12 @@ class SearchViewModel @Inject constructor(
         channel: ChannelEntity,
         onReady: (url: String, title: String) -> Unit,
     ) {
-        val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
+        val resolved = runCatching {
+            provider.resolvePlayUrl(channel.id, channel.streamUrl)
+        }.getOrElse {
+            com.ultratv.tv.nativeapp.ui.common.Toaster.show("Unable to open channel. Try again.")
+            return
+        }
         val queue = results.value.channels.ifEmpty { listOf(channel) }
         zapQueue.set(queue, channel)
         playback.set(

@@ -135,8 +135,16 @@ class PlayerViewModel @Inject constructor(
      *  and updates [PlaybackContext] so the player swaps stream URL. Returns
      *  the new URL or null when there's nothing queued. */
     suspend fun zap(forward: Boolean): String? {
-        val target = (if (forward) zapQueue.next() else zapQueue.previous()) ?: return null
-        val resolved = provider.resolvePlayUrl(target.id, target.streamUrl)
+        val state = zapQueue.state.value ?: return null
+        val target = zapQueue.adjacent(forward) ?: return null
+        val resolved = runCatching {
+            provider.resolvePlayUrl(target.id, target.streamUrl)
+        }.getOrElse {
+            com.ultratv.tv.nativeapp.ui.common.Toaster.show("Unable to open channel. Try again.")
+            return null
+        }
+        // Only advance the queue after the stream URL resolved successfully.
+        zapQueue.set(state.channels, target)
         playback.set(PlaybackContext.Item(
             providerId = target.providerId, kind = "LIVE", remoteId = target.remoteId,
             title = target.name, poster = target.logo, streamUrl = resolved,
@@ -188,9 +196,14 @@ class PlayerViewModel @Inject constructor(
         val s = zapQueue.state.value ?: return null
         val idx = s.channels.indexOfFirst { it.id == channel.id }
         if (idx < 0) return null
-        // Reuse setter to update index.
+        val resolved = runCatching {
+            provider.resolvePlayUrl(channel.id, channel.streamUrl)
+        }.getOrElse {
+            com.ultratv.tv.nativeapp.ui.common.Toaster.show("Unable to open channel. Try again.")
+            return null
+        }
+        // Commit the drawer selection only after URL resolution succeeds.
         zapQueue.set(s.channels, channel)
-        val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
         playback.set(PlaybackContext.Item(
             providerId = channel.providerId, kind = "LIVE", remoteId = channel.remoteId,
             title = channel.name, poster = channel.logo, streamUrl = resolved,

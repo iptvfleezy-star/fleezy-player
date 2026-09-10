@@ -195,7 +195,12 @@ class GuideGridViewModel @Inject constructor(
         onReady: (url: String, title: String) -> Unit,
     ) {
         viewModelScope.launch {
-            val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
+            val resolved = runCatching {
+                provider.resolvePlayUrl(channel.id, channel.streamUrl)
+            }.getOrElse {
+                com.ultratv.tv.nativeapp.ui.common.Toaster.show("Unable to open channel. Try again.")
+                return@launch
+            }
             zapQueue.set(channels.value, channel)
             playback.set(
                 com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item(

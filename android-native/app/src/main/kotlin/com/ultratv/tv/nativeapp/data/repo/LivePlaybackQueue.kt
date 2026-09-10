@@ -26,12 +26,21 @@ class LivePlaybackQueue @Inject constructor() {
         _state.value = State(channels, idx)
     }
 
-    fun next(): ChannelEntity? {
+    fun adjacent(forward: Boolean): ChannelEntity? {
         val s = _state.value ?: return null
         if (s.channels.isEmpty()) return null
-        val i = (s.index + 1) % s.channels.size
-        _state.value = s.copy(index = i)
+        val i = if (forward) {
+            (s.index + 1) % s.channels.size
+        } else {
+            (s.index - 1 + s.channels.size) % s.channels.size
+        }
         return s.channels[i]
+    }
+
+    fun next(): ChannelEntity? {
+        val target = adjacent(forward = true) ?: return null
+        set(_state.value?.channels.orEmpty(), target)
+        return target
     }
 
     fun previous(): ChannelEntity? {

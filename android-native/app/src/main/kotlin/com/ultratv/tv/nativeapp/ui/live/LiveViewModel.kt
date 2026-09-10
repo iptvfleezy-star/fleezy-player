@@ -398,10 +398,9 @@ class LiveViewModel @Inject constructor(
     }
 
     fun resolveAndPlay(channel: ChannelEntity, onReady: (url: String, title: String) -> Unit) {
-        // Seed the zap queue with the list the user was browsing so the
-        // player can D-pad UP/DOWN through it without going back.
-        zapQueue.set(channels.value, channel)
         fun register(url: String) {
+            // Seed the zap queue only after a playable URL is available.
+            zapQueue.set(channels.value, channel)
             playback.set(PlaybackContext.Item(
                 providerId = channel.providerId,
                 kind = "LIVE",
@@ -422,6 +421,8 @@ class LiveViewModel @Inject constructor(
                 val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
                 register(resolved)
                 onReady(resolved, channel.name)
+            } catch (_: Throwable) {
+                com.ultratv.tv.nativeapp.ui.common.Toaster.show("Unable to open channel. Try again.")
             } finally {
                 _resolving.value = false
             }

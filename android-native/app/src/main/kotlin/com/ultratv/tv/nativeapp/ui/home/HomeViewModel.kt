@@ -49,19 +49,15 @@ class HomeViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val featuredMovies: StateFlow<List<MovieEntity>> = pid
-        .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else catalog.movies(id).map { l -> l.take(20) } }
+        .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else catalog.moviesLimited(id, 20) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val featuredSeries: StateFlow<List<SeriesEntity>> = pid
-        .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else catalog.seriesList(id).map { l -> l.take(20) } }
+        .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else catalog.seriesLimited(id, 20) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    private val allChannels: StateFlow<List<ChannelEntity>> = pid
-        .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else catalog.channels(id) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    val featuredChannels: StateFlow<List<ChannelEntity>> = allChannels
-        .map { it.take(30) }
+    val featuredChannels: StateFlow<List<ChannelEntity>> = pid
+        .flatMapLatest { id -> if (id == null) flowOf(emptyList()) else catalog.channelsLimited(id, 30) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /**
@@ -73,25 +69,37 @@ class HomeViewModel @Inject constructor(
         onReady: (url: String, title: String) -> Unit,
     ) {
         if (h.kind == "LIVE") {
-            val all = allChannels.value
-            val channel = all.firstOrNull { it.remoteId == h.remoteId }
-            if (channel != null) {
-                val recentQueue = recentlyWatched.value
-                    .asSequence()
-                    .filter { it.kind == "LIVE" }
-                    .distinctBy { it.remoteId }
-                    .mapNotNull { item -> all.firstOrNull { it.remoteId == item.remoteId } }
-                    .toList()
+            viewModelScope.launch {
+                val channel = catalog.channelByRemoteId(h.providerId, h.remoteId)
+                if (channel == null) {
+                    playStoredHistory(h, onReady)
+                    return@launch
+                }
+
+                val recentQueue = mutableListOf<ChannelEntity>()
+                val seen = HashSet<String>()
+                for (item in recentlyWatched.value) {
+                    if (item.kind != "LIVE" || !seen.add(item.remoteId)) continue
+                    catalog.channelByRemoteId(h.providerId, item.remoteId)?.let(recentQueue::add)
+                }
                 startLive(
                     channel = channel,
                     queue = recentQueue.ifEmpty { listOf(channel) },
                     onReady = onReady,
                 )
-                return
             }
+            return
         }
 
-        // Movies/episodes must not inherit a stale Live zap queue.
+        playStoredHistory(h, onReady)
+    }
+
+    private fun playStoredHistory(
+        h: WatchHistoryEntity,
+        onReady: (url: String, title: String) -> Unit,
+    ) {
+        // Movies/episodes (and a removed Live channel fallback) must not
+        // inherit a stale Live zap queue.
         zapQueue.clear()
         playback.set(
             PlaybackContext.Item(
@@ -114,29 +122,29 @@ class HomeViewModel @Inject constructor(
     ) {
         val featured = featuredChannels.value
         val queue = if (featured.any { it.id == channel.id }) featured else listOf(channel)
-        startLive(channel, queue.ifEmpty { listOf(channel) }, onReady)
+        viewModelScope.launch {
+            startLive(channel, queue.ifEmpty { listOf(channel) }, onReady)
+        }
     }
 
-    private fun startLive(
+    private suspend fun startLive(
         channel: ChannelEntity,
         queue: List<ChannelEntity>,
         onReady: (url: String, title: String) -> Unit,
     ) {
-        viewModelScope.launch {
-            val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
-            zapQueue.set(queue, channel)
-            playback.set(
-                PlaybackContext.Item(
-                    providerId = channel.providerId,
-                    kind = "LIVE",
-                    remoteId = channel.remoteId,
-                    title = channel.name,
-                    poster = channel.logo,
-                    streamUrl = resolved,
-                )
+        val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
+        zapQueue.set(queue, channel)
+        playback.set(
+            PlaybackContext.Item(
+                providerId = channel.providerId,
+                kind = "LIVE",
+                remoteId = channel.remoteId,
+                title = channel.name,
+                poster = channel.logo,
+                streamUrl = resolved,
             )
-            onReady(resolved, channel.name)
-        }
+        )
+        onReady(resolved, channel.name)
     }
 
     /** Removes an entry from history (used by "Dismiss" on Continue watching). */

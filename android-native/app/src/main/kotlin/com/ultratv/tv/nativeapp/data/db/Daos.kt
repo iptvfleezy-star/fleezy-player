@@ -46,6 +46,15 @@ interface ChannelDao {
     fun observeForProvider(pid: Long): Flow<List<ChannelEntity>>
 
     @Query("""
+        SELECT * FROM channel WHERE providerId = :pid
+        ORDER BY CASE WHEN userPosition = 0 THEN 1 ELSE 0 END,
+                 userPosition,
+                 name COLLATE NOCASE ASC
+        LIMIT :limit
+    """)
+    fun observeForProviderLimited(pid: Long, limit: Int): Flow<List<ChannelEntity>>
+
+    @Query("""
         SELECT * FROM channel WHERE providerId = :pid AND categoryId = :cat
         ORDER BY CASE WHEN userPosition = 0 THEN 1 ELSE 0 END,
                  userPosition,
@@ -86,6 +95,9 @@ interface MovieDao {
     @Query("SELECT * FROM movie WHERE providerId = :pid ORDER BY name COLLATE NOCASE ASC")
     fun observeForProvider(pid: Long): Flow<List<MovieEntity>>
 
+    @Query("SELECT * FROM movie WHERE providerId = :pid ORDER BY name COLLATE NOCASE ASC LIMIT :limit")
+    fun observeForProviderLimited(pid: Long, limit: Int): Flow<List<MovieEntity>>
+
     @Query("SELECT * FROM movie WHERE providerId = :pid AND categoryId = :cat ORDER BY name COLLATE NOCASE ASC")
     fun observeForCategory(pid: Long, cat: String): Flow<List<MovieEntity>>
 
@@ -112,6 +124,9 @@ interface MovieDao {
 interface SeriesDao {
     @Query("SELECT * FROM series WHERE providerId = :pid ORDER BY name COLLATE NOCASE ASC")
     fun observeForProvider(pid: Long): Flow<List<SeriesEntity>>
+
+    @Query("SELECT * FROM series WHERE providerId = :pid ORDER BY name COLLATE NOCASE ASC LIMIT :limit")
+    fun observeForProviderLimited(pid: Long, limit: Int): Flow<List<SeriesEntity>>
 
     @Query("SELECT * FROM series WHERE providerId = :pid AND categoryId = :cat ORDER BY name COLLATE NOCASE ASC")
     fun observeForCategory(pid: Long, cat: String): Flow<List<SeriesEntity>>

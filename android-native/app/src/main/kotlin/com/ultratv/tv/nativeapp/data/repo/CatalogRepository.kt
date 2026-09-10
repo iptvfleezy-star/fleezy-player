@@ -39,16 +39,24 @@ class CatalogRepository @Inject constructor(
     private val stalker: com.ultratv.tv.nativeapp.data.stalker.StalkerClient,
 ) {
     fun channels(pid: Long): Flow<List<ChannelEntity>> = channelDao.observeForProvider(pid)
+    fun channelsLimited(pid: Long, limit: Int): Flow<List<ChannelEntity>> =
+        channelDao.observeForProviderLimited(pid, limit)
     fun channelsForCategory(pid: Long, categoryRemoteId: String): Flow<List<ChannelEntity>> =
         channelDao.observeForCategory(pid, categoryRemoteId)
     fun movies(pid: Long): Flow<List<MovieEntity>> = movieDao.observeForProvider(pid)
+    fun moviesLimited(pid: Long, limit: Int): Flow<List<MovieEntity>> =
+        movieDao.observeForProviderLimited(pid, limit)
     fun seriesList(pid: Long): Flow<List<SeriesEntity>> = seriesDao.observeForProvider(pid)
+    fun seriesLimited(pid: Long, limit: Int): Flow<List<SeriesEntity>> =
+        seriesDao.observeForProviderLimited(pid, limit)
     fun episodes(seriesId: Long): Flow<List<EpisodeEntity>> = episodeDao.observeForSeries(seriesId)
 
     fun categories(pid: Long, kind: String): Flow<List<CategoryEntity>> =
         categoryDao.observeForProviderKind(pid, kind)
 
     suspend fun channelById(id: Long): ChannelEntity? = channelDao.byId(id)
+    suspend fun channelByRemoteId(pid: Long, remoteId: String): ChannelEntity? =
+        channelDao.byRemoteId(pid, remoteId)
     suspend fun movieById(id: Long): MovieEntity? = movieDao.byId(id)
     suspend fun seriesById(id: Long): SeriesEntity? = seriesDao.byId(id)
     suspend fun episodeById(id: Long): EpisodeEntity? = episodeDao.byId(id)

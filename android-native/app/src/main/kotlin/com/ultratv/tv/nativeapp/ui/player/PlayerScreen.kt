@@ -144,23 +144,24 @@ class PlayerViewModel @Inject constructor(
         return resolved
     }
 
-    /** Channel list + now/next for each channel in the active zap queue.
-     *  Used by the OK-triggered drawer overlay. */
-    data class DrawerEntry(
-        val channel: com.ultratv.tv.nativeapp.data.db.ChannelEntity,
-        val position: Int,
-        val now: com.ultratv.tv.nativeapp.data.db.EpgEntity?,
-        val next: com.ultratv.tv.nativeapp.data.db.EpgEntity?,
-        val isCurrent: Boolean,
+    /**
+     * Lightweight state for the full-screen channel drawer. Keep the original
+     * channel list by reference instead of allocating one presentation object
+     * per channel every time the zap index changes. On huge All-channel queues
+     * that avoids rebuilding tens of thousands of rows for a single UP/DOWN.
+     */
+    data class DrawerState(
+        val channels: List<com.ultratv.tv.nativeapp.data.db.ChannelEntity>,
+        val index: Int,
+        val nowNext: Map<Long, Pair<com.ultratv.tv.nativeapp.data.db.EpgEntity?, com.ultratv.tv.nativeapp.data.db.EpgEntity?>>,
     )
 
-    val queue: StateFlow<List<DrawerEntry>> = zapQueue.state.map { s ->
-        if (s == null) emptyList()
+    val queue: StateFlow<DrawerState?> = zapQueue.state.map { s ->
+        if (s == null) null
         else {
             val now = System.currentTimeMillis()
-            // Keep the full drawer/zap list, but query programme metadata only
-            // around the currently playing row. An All-channels queue can hold
-            // tens of thousands of stations.
+            // Keep the full drawer/zap list browsable, but query programme
+            // metadata only around the currently playing row.
             val epgFrom = (s.index - 100).coerceAtLeast(0)
             val epgTo = (s.index + 201).coerceAtMost(s.channels.size)
             val ids = s.channels.subList(epgFrom, epgTo).map { it.id }
@@ -168,18 +169,19 @@ class PlayerViewModel @Inject constructor(
                 epgDao.rangeForChannels(chunk, now - 30 * 60_000, now + 4 * 60 * 60_000)
             }
             val byCh = rows.groupBy { it.channelId }
-            s.channels.mapIndexed { idx, c ->
-                val list = byCh[c.id].orEmpty()
-                DrawerEntry(
-                    channel = c,
-                    position = idx + 1,
-                    now = list.firstOrNull { it.startMs <= now && it.endMs > now },
-                    next = list.firstOrNull { it.startMs > now },
-                    isCurrent = idx == s.index,
-                )
+            val metadata = ids.associateWith { id ->
+                val list = byCh[id].orEmpty()
+                val current = list.firstOrNull { it.startMs <= now && it.endMs > now }
+                val next = list.firstOrNull { it.startMs > now }
+                current to next
             }
+            DrawerState(
+                channels = s.channels,
+                index = s.index,
+                nowNext = metadata,
+            )
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Zap directly to a specific channel (drawer pick). Same flow as zap(). */
     suspend fun zapTo(channel: com.ultratv.tv.nativeapp.data.db.ChannelEntity): String? {

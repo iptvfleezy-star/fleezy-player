@@ -58,13 +58,14 @@ internal fun LiveDrawer(
     onPick: (com.ultratv.tv.nativeapp.data.db.ChannelEntity) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val entries by vm.queue.collectAsState()
+    val drawerState by vm.queue.collectAsState()
+    val channels = drawerState?.channels.orEmpty()
+    val currentIndex = drawerState?.index ?: -1
     val s = LocalStrings.current
     val t = UltraTokens
     val f = UltraFonts
     val listState = rememberLazyListState()
     val currentFocusRequester = remember { FocusRequester() }
-    val currentIndex = remember(entries) { entries.indexOfFirst { it.isCurrent } }
 
     LaunchedEffect(currentIndex) {
         if (currentIndex >= 0) {
@@ -111,19 +112,23 @@ internal fun LiveDrawer(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 itemsIndexed(
-                    items = entries,
-                    key = { _, entry -> entry.channel.id },
-                ) { _, e ->
+                    items = channels,
+                    key = { _, channel -> channel.id },
+                ) { index, channel ->
+                    val isCurrent = index == currentIndex
+                    val programmes = drawerState?.nowNext?.get(channel.id)
+                    val nowProgramme = programmes?.first
+                    val nextProgramme = programmes?.second
                     Card(
-                        onClick = { onPick(e.channel) },
-                        modifier = if (e.isCurrent) {
+                        onClick = { onPick(channel) },
+                        modifier = if (isCurrent) {
                             Modifier.focusRequester(currentFocusRequester)
                         } else {
                             Modifier
                         },
                         shape = CardDefaults.shape(RoundedCornerShape(10.dp)),
                         colors = ultraCardColors(
-                            containerColor = if (e.isCurrent) t.AccentSoft else Color.Transparent,
+                            containerColor = if (isCurrent) t.AccentSoft else Color.Transparent,
                         ),
                     ) {
                         Row(
@@ -131,18 +136,18 @@ internal fun LiveDrawer(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                "%02d".format(e.position),
-                                color = if (e.isCurrent) t.Accent else t.Fg4,
+                                "%02d".format(index + 1),
+                                color = if (isCurrent) t.Accent else t.Fg4,
                                 fontSize = 12.sp,
                                 fontFamily = f.Mono,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.width(32.dp),
                             )
                             ChannelLogo(
-                                name = e.channel.name,
-                                logoUrl = e.channel.logo,
+                                name = channel.name,
+                                logoUrl = channel.logo,
                                 short = null,
-                                hueSeed = e.channel.name.hashCode(),
+                                hueSeed = channel.name.hashCode(),
                                 hd = null,
                                 size = 36.dp,
                                 showBadge = false,
@@ -151,13 +156,13 @@ internal fun LiveDrawer(
                             Column(Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        e.channel.name,
-                                        color = if (e.isCurrent) t.Fg else t.Fg2,
+                                        channel.name,
+                                        color = if (isCurrent) t.Fg else t.Fg2,
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                         maxLines = 1,
                                     )
-                                    if (e.isCurrent) {
+                                    if (isCurrent) {
                                         Spacer(Modifier.width(8.dp))
                                         Box(
                                             Modifier
@@ -175,17 +180,17 @@ internal fun LiveDrawer(
                                         }
                                     }
                                 }
-                                if (e.now != null) {
+                                if (nowProgramme != null) {
                                     Text(
-                                        e.now.title,
+                                        nowProgramme.title,
                                         color = t.Fg3,
                                         fontSize = 11.sp,
                                         maxLines = 1,
                                     )
                                 }
-                                if (e.next != null) {
+                                if (nextProgramme != null) {
                                     Text(
-                                        "${s.liveThen} ${e.next.title}",
+                                        "${s.liveThen} ${nextProgramme.title}",
                                         color = t.Fg4,
                                         fontSize = 10.sp,
                                         maxLines = 1,

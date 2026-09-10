@@ -87,7 +87,13 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
     // Reset the preview cursor when either the category or its result size
     // changes. Two categories can contain the same number of channels, and
     // remembering only chans.size could leave the preview on an unrelated row.
-    var activeIdx by remember(selected, chans.size) { mutableStateOf(0) }
+    // Track the active preview by stable channel id, not list index. Favorites
+    // and user ordering can reorder a category without changing its size; an
+    // index would then point at a different station even though focus did not.
+    var activeChannelId by remember(selected) { mutableStateOf<Long?>(null) }
+    val activeIdx = chans.indexOfFirst { it.id == activeChannelId }
+        .takeIf { it >= 0 }
+        ?: 0
     val channelFocusRequester = remember { FocusRequester() }
     val categoryListState = rememberLazyListState()
     var lastPositionedCategory by remember { mutableStateOf<String?>(null) }
@@ -219,16 +225,19 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                         }
                         ?: -1
 
-                    activeIdx = playingIndex.takeIf { it >= 0 } ?: 0
-                    listState.scrollToItem(activeIdx)
+                    val targetIndex = playingIndex.takeIf { it >= 0 } ?: 0
+                    activeChannelId = chans.getOrNull(targetIndex)?.id
+                    listState.scrollToItem(targetIndex)
 
                     if (playingIndex >= 0) {
                         androidx.compose.runtime.withFrameNanos { }
                         runCatching { channelFocusRequester.requestFocus() }
                     }
                 } else if (categoryChanged) {
-                    activeIdx = 0
+                    activeChannelId = chans.firstOrNull()?.id
                     listState.scrollToItem(0)
+                } else if (activeChannelId == null || chans.none { it.id == activeChannelId }) {
+                    activeChannelId = chans.firstOrNull()?.id
                 }
 
                 lastPositionedCategory = selected
@@ -251,21 +260,21 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                         ChannelRow(
                             channel = c,
                             position = i + 1,
-                            modifier = if (i == activeIdx) {
+                            modifier = if (c.id == activeChannelId) {
                                 Modifier.focusRequester(channelFocusRequester)
                             } else {
                                 Modifier
                             },
                             locked = isLocked,
-                            active = i == activeIdx,
+                            active = c.id == activeChannelId,
                             nowProgramme = nn?.first,
                             nextProgramme = nn?.second,
                             onFocus = {
-                                activeIdx = i
+                                activeChannelId = c.id
                                 vm.ensureShortEpg(c)
                             },
                         ) {
-                            activeIdx = i
+                            activeChannelId = c.id
                             if (isLocked) pinPrompt = c
                             else vm.resolveAndPlay(c, onPlay)
                         }
@@ -283,7 +292,9 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
         )
 
         // ---- Right pane: live mini-player + now/next + Watch CTA ----
-        val active = chans.getOrNull(activeIdx)
+        val active = activeChannelId
+            ?.let { id -> chans.firstOrNull { it.id == id } }
+            ?: chans.firstOrNull()
         if (active != null) {
             LivePreviewPane(
                 channel = active,

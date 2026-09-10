@@ -22,6 +22,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.tv.material3.MaterialTheme
@@ -244,6 +245,9 @@ private fun Root(vm: AppViewModel = hiltViewModel()) {
 @Composable
 private fun UltraTvAppRoot(sidebarPosition: SidebarPosition) {
     val nav = rememberNavController()
+    val currentBackStackEntry by nav.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route.orEmpty()
+    val playerActive = currentRoute.startsWith("player")
     val form = rememberFormFactor()
     // Effective nav style: phone-portrait collapses to a bottom bar regardless
     // of the user's "sidebar / top bar" preference, otherwise we honour it.
@@ -266,34 +270,53 @@ private fun UltraTvAppRoot(sidebarPosition: SidebarPosition) {
         androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
         when {
             useBottomBar -> Column(Modifier.fillMaxSize()) {
-                com.ultratv.tv.nativeapp.ui.common.SyncStatusBanner()
+                if (!playerActive) {
+                    com.ultratv.tv.nativeapp.ui.common.SyncStatusBanner()
+                }
                 Box(
                     Modifier
                         .weight(1f)
                         .background(MaterialTheme.colorScheme.background)
-                        .padding(PaddingValues(horizontal = 12.dp, vertical = 8.dp)),
+                        .padding(
+                            if (playerActive) PaddingValues(0.dp)
+                            else PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ),
                 ) { NavGraph(nav) }
-                BottomBarNav(navController = nav)
+                if (!playerActive) {
+                    BottomBarNav(navController = nav)
+                }
             }
             useTopBar -> Column(Modifier.fillMaxSize()) {
-                com.ultratv.tv.nativeapp.ui.common.SyncStatusBanner()
-                TopBarNav(navController = nav)
+                if (!playerActive) {
+                    com.ultratv.tv.nativeapp.ui.common.SyncStatusBanner()
+                    TopBarNav(navController = nav)
+                }
                 Box(
                     Modifier
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
-                        .padding(PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 16.dp)),
+                        .padding(
+                            if (playerActive) PaddingValues(0.dp)
+                            else PaddingValues(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 16.dp)
+                        ),
                 ) { NavGraph(nav) }
             }
             else -> Column(Modifier.fillMaxSize()) {
-                com.ultratv.tv.nativeapp.ui.common.SyncStatusBanner()
+                if (!playerActive) {
+                    com.ultratv.tv.nativeapp.ui.common.SyncStatusBanner()
+                }
                 Row(Modifier.fillMaxSize()) {
-                    SidebarNav(navController = nav)
+                    if (!playerActive) {
+                        SidebarNav(navController = nav)
+                    }
                     Box(
                         Modifier
                             .fillMaxSize()
                             .background(MaterialTheme.colorScheme.background)
-                            .padding(PaddingValues(start = 12.dp, end = 24.dp, top = 24.dp, bottom = 24.dp)),
+                            .padding(
+                                if (playerActive) PaddingValues(0.dp)
+                                else PaddingValues(start = 12.dp, end = 24.dp, top = 24.dp, bottom = 24.dp)
+                            ),
                     ) { NavGraph(nav) }
                 }
             }

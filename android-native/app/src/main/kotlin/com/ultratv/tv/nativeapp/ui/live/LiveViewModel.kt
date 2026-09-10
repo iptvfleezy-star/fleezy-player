@@ -357,8 +357,12 @@ class LiveViewModel @Inject constructor(
         viewModelScope.launch {
             while (true) {
                 kotlinx.coroutines.delay(60_000)
+                // Keep any on-demand entries that were populated for focused
+                // channels beyond the bulk preload window. A category change
+                // still replaces the map through the collector above.
                 refreshNowNext(
-                    channels.value.take(MAX_BULK_EPG_CHANNELS).map { it.id }
+                    channels.value.take(MAX_BULK_EPG_CHANNELS).map { it.id },
+                    merge = true,
                 )
             }
         }

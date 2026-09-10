@@ -42,6 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ultratv.tv.nativeapp.data.db.ChannelEntity
+import com.ultratv.tv.nativeapp.data.db.EpgSearchResult
 import com.ultratv.tv.nativeapp.data.db.MovieEntity
 import com.ultratv.tv.nativeapp.data.db.SeriesEntity
 import com.ultratv.tv.nativeapp.data.repo.CatalogRepository
@@ -61,6 +62,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import androidx.tv.material3.Text
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -117,26 +121,43 @@ class SearchViewModel @Inject constructor(
     fun clear() { setQuery("") }
     fun clearHistory() { viewModelScope.launch { history.clear() } }
 
+    fun playProgramme(
+        programme: EpgSearchResult,
+        onReady: (url: String, title: String) -> Unit,
+    ) {
+        viewModelScope.launch {
+            val channel = catalog.channelById(programme.channelId) ?: return@launch
+            playResolvedChannel(channel, onReady)
+        }
+    }
+
     fun playChannel(
         channel: ChannelEntity,
         onReady: (url: String, title: String) -> Unit,
     ) {
         viewModelScope.launch {
-            val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
-            val queue = results.value.channels.ifEmpty { listOf(channel) }
-            zapQueue.set(queue, channel)
-            playback.set(
-                com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item(
-                    providerId = channel.providerId,
-                    kind = "LIVE",
-                    remoteId = channel.remoteId,
-                    title = channel.name,
-                    poster = channel.logo,
-                    streamUrl = resolved,
-                )
-            )
-            onReady(resolved, channel.name)
+            playResolvedChannel(channel, onReady)
         }
+    }
+
+    private suspend fun playResolvedChannel(
+        channel: ChannelEntity,
+        onReady: (url: String, title: String) -> Unit,
+    ) {
+        val resolved = provider.resolvePlayUrl(channel.id, channel.streamUrl)
+        val queue = results.value.channels.ifEmpty { listOf(channel) }
+        zapQueue.set(queue, channel)
+        playback.set(
+            com.ultratv.tv.nativeapp.data.repo.PlaybackContext.Item(
+                providerId = channel.providerId,
+                kind = "LIVE",
+                remoteId = channel.remoteId,
+                title = channel.name,
+                poster = channel.logo,
+                streamUrl = resolved,
+            )
+        )
+        onReady(resolved, channel.name)
     }
 }
 
@@ -147,7 +168,7 @@ private val KB_ROWS = listOf(
     "0123456789".toList(),
 )
 
-private val FILTERS = listOf("All", "Movies", "Series", "Channels")
+private val FILTERS = listOf("All", "Movies", "Series", "Channels", "Guide")
 
 @OptIn(androidx.tv.material3.ExperimentalTvMaterial3Api::class)
 @Composable
@@ -333,11 +354,12 @@ fun SearchScreen(
             }
             Spacer(Modifier.height(28.dp))
 
-            val total = r.channels.size + r.movies.size + r.series.size
+            val total = r.channels.size + r.movies.size + r.series.size + r.programmes.size
             val visibleTotal = when (activeFilter) {
                 1 -> r.movies.size
                 2 -> r.series.size
                 3 -> r.channels.size
+                4 -> r.programmes.size
                 else -> total
             }
             val canSearch = q.trim().length >= 2
@@ -389,6 +411,14 @@ fun SearchScreen(
                     ChannelResultCard(channel, onClick = {
                         vm.playChannel(channel, onOpenChannel)
                     })
+                }
+            }
+            if (canSearch && (showAll || activeFilter == 4)) {
+                ResultSection("Guide", r.programmes) { programme ->
+                    ProgrammeResultCard(
+                        programme = programme,
+                        onClick = { vm.playProgramme(programme, onOpenChannel) },
+                    )
                 }
             }
 
@@ -565,4 +595,73 @@ private fun ChannelResultCard(c: ChannelEntity, onClick: () -> Unit) {
             )
         }
     }
+}
+
+
+private val searchTimeFormatter = SimpleDateFormat("EEE h:mm a", Locale.getDefault())
+
+@Composable
+private fun ProgrammeResultCard(
+    programme: EpgSearchResult,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val now = System.currentTimeMillis()
+    val airingNow = now in programme.startMs until programme.endMs
+    Row(
+        Modifier
+            .width(360.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (focused) UltraTokens.SurfaceStrong else UltraTokens.Surface1)
+            .border(
+                if (focused) 2.dp else 1.dp,
+                if (focused) UltraTokens.Accent else UltraTokens.Line,
+                RoundedCornerShape(12.dp),
+            )
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ChannelLogo(
+            name = programme.channelName,
+            logoUrl = programme.channelLogo,
+            short = null,
+            hueSeed = programme.channelName.hashCode(),
+            hd = null,
+            size = 48.dp,
+            showBadge = false,
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                programme.title,
+                color = UltraTokens.Fg,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+            )
+            Text(
+                programme.channelName,
+                color = UltraTokens.Fg2,
+                fontSize = 11.sp,
+                maxLines = 1,
+            )
+            Text(
+                if (airingNow) {
+                    "LIVE NOW · " + formatSearchTime(programme.endMs) + " end"
+                } else {
+                    formatSearchTime(programme.startMs)
+                },
+                color = if (airingNow) UltraTokens.Accent else UltraTokens.Fg3,
+                fontSize = 10.sp,
+                fontWeight = if (airingNow) FontWeight.SemiBold else FontWeight.Normal,
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+private fun formatSearchTime(ms: Long): String = synchronized(searchTimeFormatter) {
+    searchTimeFormatter.format(Date(ms))
 }

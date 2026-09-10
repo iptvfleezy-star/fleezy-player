@@ -97,10 +97,17 @@ class CatalogRepository @Inject constructor(
     suspend fun search(pid: Long, query: String): SearchResults {
         if (query.isBlank()) return SearchResults()
         val q = query.trim()
+        val now = System.currentTimeMillis()
         return SearchResults(
             channels = channelDao.search(pid, q),
             movies = movieDao.search(pid, q),
             series = seriesDao.search(pid, q),
+            programmes = epgDao.searchUpcoming(
+                pid = pid,
+                q = q,
+                nowMs = now,
+                windowEndMs = now + 7L * 24L * 60L * 60L * 1_000L,
+            ),
         )
     }
 
@@ -138,4 +145,5 @@ data class SearchResults(
     val channels: List<ChannelEntity> = emptyList(),
     val movies: List<MovieEntity> = emptyList(),
     val series: List<SeriesEntity> = emptyList(),
+    val programmes: List<com.ultratv.tv.nativeapp.data.db.EpgSearchResult> = emptyList(),
 )

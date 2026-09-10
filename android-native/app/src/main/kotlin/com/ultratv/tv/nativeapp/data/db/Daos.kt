@@ -299,6 +299,19 @@ interface RecordingDao {
     suspend fun delete(id: Long)
 }
 
+data class EpgSearchResult(
+    val epgId: Long,
+    val channelId: Long,
+    val providerId: Long,
+    val remoteId: String,
+    val channelName: String,
+    val channelLogo: String?,
+    val title: String,
+    val description: String?,
+    val startMs: Long,
+    val endMs: Long,
+)
+
 @Dao
 interface EpgDao {
     @Query("SELECT * FROM epg WHERE channelId = :cid AND endMs >= :nowMs ORDER BY startMs LIMIT 20")
@@ -315,6 +328,39 @@ interface EpgDao {
 
     @Query("SELECT * FROM epg WHERE channelId IN (:channelIds) AND endMs >= :nowMs AND startMs <= :windowEndMs ORDER BY startMs")
     suspend fun rangeForChannels(channelIds: List<Long>, nowMs: Long, windowEndMs: Long): List<EpgEntity>
+
+    @Query("""
+        SELECT
+            e.id AS epgId,
+            e.channelId AS channelId,
+            c.providerId AS providerId,
+            c.remoteId AS remoteId,
+            c.name AS channelName,
+            c.logo AS channelLogo,
+            e.title AS title,
+            e.description AS description,
+            e.startMs AS startMs,
+            e.endMs AS endMs
+        FROM epg e
+        INNER JOIN channel c ON c.id = e.channelId
+        WHERE c.providerId = :pid
+          AND e.endMs >= :nowMs
+          AND e.startMs <= :windowEndMs
+          AND (
+              e.title LIKE '%' || :q || '%'
+              OR COALESCE(e.description, '') LIKE '%' || :q || '%'
+          )
+        ORDER BY CASE WHEN e.title LIKE :q || '%' THEN 0 ELSE 1 END,
+                 e.startMs ASC,
+                 c.name COLLATE NOCASE ASC
+        LIMIT 50
+    """)
+    suspend fun searchUpcoming(
+        pid: Long,
+        q: String,
+        nowMs: Long,
+        windowEndMs: Long,
+    ): List<EpgSearchResult>
 
     /** Full programme list for one channel within a time window — used by the
      *  TiviMate-style "tonight's schedule" column on the Live screen. */

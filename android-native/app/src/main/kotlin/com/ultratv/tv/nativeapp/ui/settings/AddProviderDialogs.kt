@@ -27,6 +27,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
@@ -122,6 +127,9 @@ fun FormField(
     password: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text,
     placeholder: String? = null,
+    focusRequester: FocusRequester? = null,
+    onDpadUp: (() -> Unit)? = null,
+    onDpadDown: (() -> Unit)? = null,
 ) {
     val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
@@ -146,7 +154,27 @@ fun FormField(
                     keyboardType = if (password) KeyboardType.Password else keyboardType,
                 ),
                 interactionSource = interaction,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+                    .onPreviewKeyEvent { event ->
+                        if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        when (event.key) {
+                            Key.DirectionUp -> {
+                                if (onDpadUp != null) {
+                                    onDpadUp()
+                                    true
+                                } else false
+                            }
+                            Key.DirectionDown -> {
+                                if (onDpadDown != null) {
+                                    onDpadDown()
+                                    true
+                                } else false
+                            }
+                            else -> false
+                        }
+                    },
                 decorationBox = { inner ->
                     if (value.isEmpty() && placeholder != null) {
                         Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
@@ -187,7 +215,7 @@ fun XtreamDialog(onDismiss: () -> Unit, onSubmit: (name: String, url: String, us
 
 @Composable
 private fun Modifier.androidx_border(focused: Boolean): Modifier = this.border(
-    width = 1.dp,
+    width = if (focused) 2.dp else 1.dp,
     color = if (focused) com.ultratv.tv.nativeapp.ui.theme.UltraTokens.Accent else com.ultratv.tv.nativeapp.ui.theme.UltraTokens.Line2,
     shape = RoundedCornerShape(8.dp),
 )

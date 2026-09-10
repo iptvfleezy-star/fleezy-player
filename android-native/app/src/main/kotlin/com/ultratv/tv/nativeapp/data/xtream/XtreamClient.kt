@@ -1,5 +1,7 @@
 package com.ultratv.tv.nativeapp.data.xtream
 
+import android.os.SystemClock
+import android.util.Log
 import com.ultratv.tv.nativeapp.data.db.CategoryEntity
 import com.ultratv.tv.nativeapp.data.db.ChannelEntity
 import com.ultratv.tv.nativeapp.data.db.EpgEntity
@@ -15,8 +17,6 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import javax.inject.Inject
@@ -69,28 +69,48 @@ class XtreamClient @Inject constructor(private val ok: OkHttpClient) {
         CategoryEntity(providerId = p.id, kind = "LIVE", remoteId = rid, name = name)
     }
 
-    suspend fun fetchLiveStreams(p: ProviderEntity): List<ChannelEntity> = arrAt(p, "get_live_streams") { o ->
-        val sid = o["stream_id"]?.str() ?: return@arrAt null
-        val name = o["name"]?.str() ?: return@arrAt null
-        val url = "${p.baseUrl}/live/${p.username.urlEnc()}/${p.password.urlEnc()}/$sid.ts"
-        val tvArchive = o["tv_archive"]?.let { e -> e.str()?.toIntOrNull() ?: 0 } ?: 0
-        val archiveDuration = o["tv_archive_duration"]?.let { e -> e.str()?.toIntOrNull() ?: 0 } ?: 0
-        ChannelEntity(
-            providerId = p.id,
-            remoteId = sid,
-            name = name,
-            logo = o["stream_icon"]?.str(),
-            categoryId = o["category_id"]?.str(),
-            streamUrl = url,
-            // Xtream exposes the xmltv ID either as epg_channel_id or, on some
-            // panels, the same value embedded in tv_archive_duration JSON. We
-            // take the canonical field and fall back to None.
-            epgChannelId = o["epg_channel_id"]?.str()?.takeIf { it.isNotBlank() },
-            // tv_archive == 1 means the provider keeps recordings; we synth
-            // the timeshift URL from Catchup.synthesizeXtreamTimeshift().
-            catchupSource = null,
-            catchupDays = if (tvArchive >= 1) archiveDuration.coerceAtLeast(1) else 0,
-        )
+    suspend fun fetchLiveStreams(p: ProviderEntity): List<ChannelEntity> =
+        fetchLiveStreamsInternal(p, categoryRemoteId = null)
+
+    /**
+     * Category-scoped Live fetch for large Xtream/IPTV Boss lineups.
+     *
+     * The existing full-catalog path remains the default for now. This method
+     * gives the repository a safe path to move to category-first/on-demand
+     * loading later without changing the customer-facing Xtream contract.
+     */
+    suspend fun fetchLiveStreamsForCategory(
+        p: ProviderEntity,
+        categoryRemoteId: String,
+    ): List<ChannelEntity> = fetchLiveStreamsInternal(p, categoryRemoteId)
+
+    private suspend fun fetchLiveStreamsInternal(
+        p: ProviderEntity,
+        categoryRemoteId: String?,
+    ): List<ChannelEntity> {
+        val extraQuery = categoryRemoteId
+            ?.takeIf { it.isNotBlank() }
+            ?.let { "&category_id=${it.urlEnc()}" }
+            .orEmpty()
+
+        return arrAt(p, "get_live_streams", extraQuery) { o ->
+            val sid = o["stream_id"]?.str() ?: return@arrAt null
+            val name = o["name"]?.str() ?: return@arrAt null
+            val url = "${p.baseUrl}/live/${p.username.urlEnc()}/${p.password.urlEnc()}/$sid.ts"
+            val tvArchive = o["tv_archive"]?.let { e -> e.str()?.toIntOrNull() ?: 0 } ?: 0
+            val archiveDuration = o["tv_archive_duration"]?.let { e -> e.str()?.toIntOrNull() ?: 0 } ?: 0
+            ChannelEntity(
+                providerId = p.id,
+                remoteId = sid,
+                name = name,
+                logo = o["stream_icon"]?.str(),
+                categoryId = o["category_id"]?.str(),
+                streamUrl = url,
+                epgChannelId = o["epg_channel_id"]?.str()?.takeIf { it.isNotBlank() },
+                catchupSource = null,
+                catchupDays = if (tvArchive >= 1) archiveDuration.coerceAtLeast(1) else 0,
+            )
+        }
     }
 
     // ---- VOD (Movies) ----
@@ -198,16 +218,34 @@ class XtreamClient @Inject constructor(private val ok: OkHttpClient) {
     private suspend inline fun <T : Any> arrAt(
         p: ProviderEntity,
         action: String,
+        extraQuery: String = "",
         crossinline transform: (JsonObject) -> T?,
     ): List<T> {
-        val body = get("${p.baseUrl}/player_api.php?username=${p.username.urlEnc()}&password=${p.password.urlEnc()}&action=$action")
+        val requestStarted = SystemClock.elapsedRealtime()
+        val body = get("${p.baseUrl}/player_api.php?username=${p.username.urlEnc()}&password=${p.password.urlEnc()}&action=$action$extraQuery")
+        val requestMs = SystemClock.elapsedRealtime() - requestStarted
+
         // Large provider catalogs can contain tens of thousands of entries.
         // Parsing/mapping them on a ViewModel's Main coroutine freezes Fire TV
         // navigation even though the HTTP request itself runs on IO.
         return withContext(Dispatchers.Default) {
+            val parseStarted = SystemClock.elapsedRealtime()
             val parsed = json.parseToJsonElement(body)
-            val arr = parsed as? JsonArray ?: return@withContext emptyList()
-            arr.mapNotNull { (it as? JsonObject)?.let(transform) }
+            val arr = parsed as? JsonArray
+            if (arr == null) {
+                Log.w(
+                    "FleezyCatalog",
+                    "$action returned non-array payload; chars=${body.length}; requestMs=$requestMs",
+                )
+                return@withContext emptyList()
+            }
+            val mapped = arr.mapNotNull { (it as? JsonObject)?.let(transform) }
+            val parseMs = SystemClock.elapsedRealtime() - parseStarted
+            Log.i(
+                "FleezyCatalog",
+                "$action items=${mapped.size}; chars=${body.length}; requestMs=$requestMs; parseMs=$parseMs; scoped=${extraQuery.isNotEmpty()}",
+            )
+            mapped
         }
     }
 

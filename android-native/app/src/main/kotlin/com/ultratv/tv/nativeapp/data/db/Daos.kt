@@ -101,6 +101,12 @@ interface MovieDao {
     @Query("SELECT * FROM movie WHERE providerId = :pid AND categoryId = :cat ORDER BY name COLLATE NOCASE ASC")
     fun observeForCategory(pid: Long, cat: String): Flow<List<MovieEntity>>
 
+    @Query("SELECT * FROM movie WHERE providerId = :pid AND categoryId = :cat ORDER BY name COLLATE NOCASE ASC LIMIT :limit")
+    fun observeForCategoryLimited(pid: Long, cat: String, limit: Int): Flow<List<MovieEntity>>
+
+    @Query("SELECT * FROM movie WHERE providerId = :pid AND categoryId IS NULL ORDER BY name COLLATE NOCASE ASC LIMIT :limit")
+    fun observeUncategorizedLimited(pid: Long, limit: Int): Flow<List<MovieEntity>>
+
     @Query("SELECT * FROM movie WHERE id = :id")
     suspend fun byId(id: Long): MovieEntity?
 
@@ -133,6 +139,12 @@ interface SeriesDao {
 
     @Query("SELECT * FROM series WHERE providerId = :pid AND categoryId = :cat ORDER BY name COLLATE NOCASE ASC")
     fun observeForCategory(pid: Long, cat: String): Flow<List<SeriesEntity>>
+
+    @Query("SELECT * FROM series WHERE providerId = :pid AND categoryId = :cat ORDER BY name COLLATE NOCASE ASC LIMIT :limit")
+    fun observeForCategoryLimited(pid: Long, cat: String, limit: Int): Flow<List<SeriesEntity>>
+
+    @Query("SELECT * FROM series WHERE providerId = :pid AND categoryId IS NULL ORDER BY name COLLATE NOCASE ASC LIMIT :limit")
+    fun observeUncategorizedLimited(pid: Long, limit: Int): Flow<List<SeriesEntity>>
 
     @Query("SELECT * FROM series WHERE id = :id")
     suspend fun byId(id: Long): SeriesEntity?

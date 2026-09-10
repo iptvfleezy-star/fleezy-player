@@ -46,9 +46,17 @@ class CatalogRepository @Inject constructor(
     fun movies(pid: Long): Flow<List<MovieEntity>> = movieDao.observeForProvider(pid)
     fun moviesLimited(pid: Long, limit: Int): Flow<List<MovieEntity>> =
         movieDao.observeForProviderLimited(pid, limit)
+    fun moviesForCategoryLimited(pid: Long, categoryRemoteId: String, limit: Int): Flow<List<MovieEntity>> =
+        movieDao.observeForCategoryLimited(pid, categoryRemoteId, limit)
+    fun uncategorizedMoviesLimited(pid: Long, limit: Int): Flow<List<MovieEntity>> =
+        movieDao.observeUncategorizedLimited(pid, limit)
     fun seriesList(pid: Long): Flow<List<SeriesEntity>> = seriesDao.observeForProvider(pid)
     fun seriesLimited(pid: Long, limit: Int): Flow<List<SeriesEntity>> =
         seriesDao.observeForProviderLimited(pid, limit)
+    fun seriesForCategoryLimited(pid: Long, categoryRemoteId: String, limit: Int): Flow<List<SeriesEntity>> =
+        seriesDao.observeForCategoryLimited(pid, categoryRemoteId, limit)
+    fun uncategorizedSeriesLimited(pid: Long, limit: Int): Flow<List<SeriesEntity>> =
+        seriesDao.observeUncategorizedLimited(pid, limit)
     fun episodes(seriesId: Long): Flow<List<EpisodeEntity>> = episodeDao.observeForSeries(seriesId)
 
     fun categories(pid: Long, kind: String): Flow<List<CategoryEntity>> =

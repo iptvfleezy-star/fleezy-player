@@ -29,6 +29,9 @@ import androidx.paging.cachedIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+private const val DISCOVERY_RAIL_LIMIT = 16
+private const val DISCOVERY_ITEMS_PER_RAIL = 25
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class SeriesListViewModel @Inject constructor(
@@ -87,28 +90,46 @@ class SeriesListViewModel @Inject constructor(
 
     fun selectCategory(remoteId: String?) { _sel.value = remoteId }
 
+    /**
+     * Keep the default Series landing page bounded even on enormous Xtream
+     * libraries. Every category remains available through the paged grid.
+     */
     val rails: StateFlow<List<SeriesRail>> = combine(
-        providers, hiddenStore.hidden,
-    ) { ps, hidden -> ps to hidden }
-        .flatMapLatest { (ps, hidden) ->
-            val pid = (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id ?: return@flatMapLatest flowOf(emptyList())
-            combine(catalog.categories(pid, "SERIES"), catalog.seriesList(pid)) { cats, series ->
-                val visibleCats = cats.filter { hiddenStore.keyFor("SERIES", pid, it.remoteId) !in hidden }
-                val groups = series.groupBy { it.categoryId }
-                val out = mutableListOf<SeriesRail>()
-                visibleCats.forEach { c ->
-                    val items = groups[c.remoteId].orEmpty().take(25)
-                    if (items.isNotEmpty()) out += SeriesRail(c, items)
-                }
-                val others = series.filter { it.categoryId == null || it.categoryId !in visibleCats.map { c -> c.remoteId }.toSet() }
-                if (others.isNotEmpty()) out += SeriesRail(null, others.take(25))
-                out
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        providers, categories,
+    ) { ps, cats ->
+        val pid = (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id
+        pid to cats
+    }.flatMapLatest { (pid, cats) ->
+        if (pid == null) return@flatMapLatest flowOf(emptyList())
 
-    val featured: StateFlow<SeriesEntity?> = items
-        .map { list -> list.maxByOrNull { (it.year ?: 0) * 100L + (it.name.length % 100) } }
+        val visibleCats = cats
+            .filter { it.providerId == pid }
+            .take(DISCOVERY_RAIL_LIMIT)
+
+        val railFlows: MutableList<Flow<SeriesRail>> = visibleCats.map { cat ->
+            catalog.seriesForCategoryLimited(
+                pid,
+                cat.remoteId,
+                DISCOVERY_ITEMS_PER_RAIL,
+            ).map { items -> SeriesRail(cat, items) }
+        }.toMutableList()
+
+        railFlows += catalog.uncategorizedSeriesLimited(
+            pid,
+            DISCOVERY_ITEMS_PER_RAIL,
+        ).map { items -> SeriesRail(null, items) }
+
+        combine(railFlows) { values ->
+            values.filter { it.items.isNotEmpty() }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val featured: StateFlow<SeriesEntity?> = rails
+        .map { discoveryRails ->
+            discoveryRails.asSequence()
+                .flatMap { it.items.asSequence() }
+                .maxByOrNull { (it.year ?: 0) * 100L + (it.name.length % 100) }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val pagedSeries: kotlinx.coroutines.flow.Flow<PagingData<SeriesEntity>> = combine(

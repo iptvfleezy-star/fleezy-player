@@ -37,7 +37,6 @@ fun SeriesScreen(onOpen: (Long) -> Unit, vm: SeriesListViewModel = hiltViewModel
     val cats by vm.categories.collectAsState()
     val rails by vm.rails.collectAsState()
     val featured by vm.featured.collectAsState()
-    val flatItems by vm.items.collectAsState()
     val refreshing by vm.refreshing.collectAsState()
 
     val railsMode = sel == null

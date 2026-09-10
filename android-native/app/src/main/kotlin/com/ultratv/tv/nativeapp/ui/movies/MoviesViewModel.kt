@@ -30,6 +30,9 @@ import javax.inject.Inject
 /** Group of movies bound to a category — one rail in the Netflix-style screen. */
 data class MovieRail(val category: CategoryEntity?, val items: List<MovieEntity>)
 
+private const val DISCOVERY_RAIL_LIMIT = 16
+private const val DISCOVERY_ITEMS_PER_RAIL = 25
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class MoviesViewModel @Inject constructor(
@@ -95,36 +98,48 @@ class MoviesViewModel @Inject constructor(
      * capped at 25 per rail so even a 50k-movie catalog stays fluid (lazy
      * horizontal scrolling within the rail handles the rest of the discovery).
      */
+    /**
+     * TV discovery should not materialize the provider's entire VOD catalog.
+     * Show a bounded set of provider-ordered category rails; selecting any
+     * category still opens the fully paged catalog below.
+     */
     val rails: StateFlow<List<MovieRail>> = combine(
-        providers, hiddenStore.hidden,
-    ) { ps, hidden -> ps to hidden }
-        .flatMapLatest { (ps, hidden) ->
-            val pid = (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id ?: return@flatMapLatest flowOf(emptyList())
-            combine(catalog.categories(pid, "MOVIE"), catalog.movies(pid)) { cats, movs ->
-                val visibleCats = cats.filter { hiddenStore.keyFor("MOVIE", pid, it.remoteId) !in hidden }
-                val groups = movs.groupBy { it.categoryId }
-                val rails = mutableListOf<MovieRail>()
-                visibleCats.forEach { cat ->
-                    val items = groups[cat.remoteId].orEmpty().take(25)
-                    if (items.isNotEmpty()) rails += MovieRail(cat, items)
-                }
-                // Trailing "Other" rail for items whose category was hidden or unknown.
-                val unbucketed = movs.filter { m ->
-                    val cid = m.categoryId
-                    cid == null || cid !in visibleCats.map { c -> c.remoteId }.toSet()
-                }
-                if (unbucketed.isNotEmpty()) {
-                    rails += MovieRail(null, unbucketed.take(25))
-                }
-                rails
-            }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        providers, categories,
+    ) { ps, cats ->
+        val pid = (ps.firstOrNull { it.active } ?: ps.firstOrNull())?.id
+        pid to cats
+    }.flatMapLatest { (pid, cats) ->
+        if (pid == null) return@flatMapLatest flowOf(emptyList())
 
-    val featured: StateFlow<MovieEntity?> = movies
-        .map { list ->
-            // Pick the most-recent year, breaking ties by name length (deterministic).
-            list.maxByOrNull { (it.year ?: 0) * 100L + (it.name.length % 100) }
+        val visibleCats = cats
+            .filter { it.providerId == pid }
+            .take(DISCOVERY_RAIL_LIMIT)
+
+        val railFlows: MutableList<Flow<MovieRail>> = visibleCats.map { cat ->
+            catalog.moviesForCategoryLimited(
+                pid,
+                cat.remoteId,
+                DISCOVERY_ITEMS_PER_RAIL,
+            ).map { items -> MovieRail(cat, items) }
+        }.toMutableList()
+
+        // Preserve genuinely uncategorized titles without leaking hidden
+        // categories back into an "Other" rail.
+        railFlows += catalog.uncategorizedMoviesLimited(
+            pid,
+            DISCOVERY_ITEMS_PER_RAIL,
+        ).map { items -> MovieRail(null, items) }
+
+        combine(railFlows) { values ->
+            values.filter { it.items.isNotEmpty() }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val featured: StateFlow<MovieEntity?> = rails
+        .map { discoveryRails ->
+            discoveryRails.asSequence()
+                .flatMap { it.items.asSequence() }
+                .maxByOrNull { (it.year ?: 0) * 100L + (it.name.length % 100) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

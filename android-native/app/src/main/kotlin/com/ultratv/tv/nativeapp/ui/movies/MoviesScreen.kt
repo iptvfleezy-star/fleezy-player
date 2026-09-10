@@ -37,7 +37,6 @@ fun MoviesScreen(onOpen: (Long) -> Unit, vm: MoviesViewModel = hiltViewModel()) 
     val cats by vm.categories.collectAsState()
     val rails by vm.rails.collectAsState()
     val featured by vm.featured.collectAsState()
-    val flatMovies by vm.movies.collectAsState()
     val refreshing by vm.refreshing.collectAsState()
 
     // When no category is filtered, show the Netflix-style rails view.

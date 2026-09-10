@@ -212,6 +212,32 @@ class PlayerViewModel @Inject constructor(
         return history.resumePositionMs(c.providerId, c.kind, c.remoteId)
     }
 
+    /**
+     * Retry helper for the error overlay. Live URLs are re-resolved before
+     * retrying so Stalker/create-link style streams get a fresh playable URL.
+     * VOD/catch-up keep the already resolved URL.
+     */
+    suspend fun retryCurrentStream(): String? {
+        val item = playback.current.value ?: return null
+        if (item.kind != "LIVE") return item.streamUrl
+
+        val channel = channelDao.byRemoteId(item.providerId, item.remoteId)
+            ?: return item.streamUrl
+        val resolved = runCatching {
+            provider.resolvePlayUrl(channel.id, channel.streamUrl)
+        }.getOrElse {
+            item.streamUrl
+        }
+        playback.set(
+            item.copy(
+                title = channel.name,
+                poster = channel.logo,
+                streamUrl = resolved,
+            )
+        )
+        return resolved
+    }
+
     /** Persists the current playback position. Called periodically + on dispose. */
     fun recordProgress(positionMs: Long, durationMs: Long) {
         val c = playback.current.value ?: return
@@ -691,12 +717,24 @@ fun PlayerScreen(url: String, title: String, onBack: () -> Unit, vm: PlayerViewM
                     color = Color.White.copy(alpha = 0.65f),
                     fontSize = 13.sp,
                 )
-                Button(onClick = {
-                    playbackError = null
-                    player.prepare()
-                    player.playWhenReady = true
-                }) {
-                    Text("Retry")
+                Row(
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+                ) {
+                    Button(onClick = {
+                        scope.launch {
+                            playbackError = null
+                            val retryUrl = vm.retryCurrentStream() ?: currentUrl
+                            currentUrl = retryUrl
+                            player.setMediaItem(MediaItem.fromUri(retryUrl))
+                            player.prepare()
+                            player.play()
+                        }
+                    }) {
+                        Text("Retry")
+                    }
+                    Button(onClick = onBack) {
+                        Text("Exit")
+                    }
                 }
             }
         }

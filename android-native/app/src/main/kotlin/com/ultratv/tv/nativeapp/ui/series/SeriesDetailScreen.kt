@@ -139,34 +139,73 @@ fun SeriesDetailScreen(
         Spacer(Modifier.height(14.dp))
         if (eps.isEmpty() && !loading) {
             Text(S.seriesNoEpisodes, color = T.Fg3)
+        } else if (eps.isEmpty()) {
+            Text("Loading episodes…", color = T.Fg3)
         } else {
+            val seasons = remember(eps) {
+                eps.groupBy { it.season }
+                    .toSortedMap()
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(eps, key = { it.id }) { ep ->
-                    Card(
-                        onClick = {
-                            vm.playEpisode(series.name, series.remoteId, series.providerId, ep, onPlayEpisode)
-                        },
-                        shape = CardDefaults.shape(RoundedCornerShape(12.dp)),
-                        colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(containerColor = T.Surface1),
-                        modifier = Modifier.border(1.dp, T.Line, RoundedCornerShape(12.dp)),
-                    ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
-                            horizontalArrangement = Arrangement.spacedBy(18.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                seasons.forEach { (seasonNumber, seasonEpisodes) ->
+                    item(key = "season-" + seasonNumber) {
+                        Text(
+                            "SEASON " + seasonNumber,
+                            color = T.Fg3,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.8.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+                        )
+                    }
+                    items(
+                        items = seasonEpisodes.sortedBy { it.episode },
+                        key = { it.id },
+                    ) { ep ->
+                        Card(
+                            onClick = {
+                                vm.playEpisode(series.name, series.remoteId, series.providerId, ep, onPlayEpisode)
+                            },
+                            shape = CardDefaults.shape(RoundedCornerShape(12.dp)),
+                            colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(containerColor = T.Surface1),
+                            modifier = Modifier.border(1.dp, T.Line, RoundedCornerShape(12.dp)),
                         ) {
-                            Text(
-                                "S%02dE%02d".format(ep.season, ep.episode),
-                                color = T.Accent,
-                                fontSize = 13.sp,
-                                fontFamily = F.Mono,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.width(80.dp),
-                            )
-                            Text(ep.title, color = T.Fg, fontSize = 15.sp)
+                            Row(
+                                Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp),
+                                horizontalArrangement = Arrangement.spacedBy(18.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    "E%02d".format(ep.episode),
+                                    color = T.Accent,
+                                    fontSize = 13.sp,
+                                    fontFamily = F.Mono,
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.width(64.dp),
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        ep.title.ifBlank { "Episode " + ep.episode },
+                                        color = T.Fg,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                    )
+                                    ep.plot?.takeIf { it.isNotBlank() }?.let { plot ->
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            plot,
+                                            color = T.Fg3,
+                                            fontSize = 11.sp,
+                                            lineHeight = 15.sp,
+                                            maxLines = 2,
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -13,7 +13,6 @@ import com.ultratv.tv.nativeapp.data.parental.ParentalStore
 import com.ultratv.tv.nativeapp.data.stalker.StalkerClient
 import com.ultratv.tv.nativeapp.data.xmltv.XmltvParser
 import com.ultratv.tv.nativeapp.data.xtream.XtreamClient
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -203,11 +202,11 @@ class ProviderRepository @Inject constructor(
         }
         try {
             step("Fetching xmltv…", 10)
-            // Build (xmltv channel id → local channel id) map for matching.
-            val all = channelDao.observeForProvider(providerId).first()
-            val map = all
-                .mapNotNull { ch -> ch.epgChannelId?.takeIf { it.isNotBlank() }?.let { it to ch.id } }
-                .toMap()
+            // Build only the tiny (xmltv channel id → local channel id) projection
+            // needed for matching. On very large providers this avoids materialising
+            // full ChannelEntity rows containing logos, URLs, catch-up metadata, etc.
+            val map = channelDao.epgKeysForProvider(providerId)
+                .associate { it.epgChannelId to it.id }
             if (map.isEmpty()) {
                 step("No xmltv channel IDs available for this provider", 100)
                 return 0

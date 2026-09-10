@@ -34,6 +34,11 @@ interface ProviderDao {
     suspend fun activate(id: Long)
 }
 
+data class ChannelEpgKey(
+    val id: Long,
+    val epgChannelId: String,
+)
+
 @Dao
 interface ChannelDao {
     // userPosition first (0 = unset, sorted last via CASE), then alpha by name.
@@ -94,6 +99,15 @@ interface ChannelDao {
 
     @Query("DELETE FROM channel WHERE providerId = :pid")
     suspend fun deleteForProvider(pid: Long)
+
+    @Query("""
+        SELECT id, epgChannelId
+        FROM channel
+        WHERE providerId = :pid
+          AND epgChannelId IS NOT NULL
+          AND TRIM(epgChannelId) != ''
+    """)
+    suspend fun epgKeysForProvider(pid: Long): List<ChannelEpgKey>
 
     @Query("SELECT COUNT(*) FROM channel WHERE providerId = :pid")
     suspend fun count(pid: Long): Int

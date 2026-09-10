@@ -154,15 +154,15 @@ class MainActivity : ComponentActivity() {
                             // fresh zap queue for UP/DOWN to work after auto-resume.
                             val current = channelDao.byRemoteId(activeProvider.id, last.remoteId)
                             if (current != null) {
-                                val queue = recent
-                                    .asSequence()
+                                val liveHistory = recent
                                     .filter { it.kind == "LIVE" }
                                     .distinctBy { it.remoteId }
-                                    .mapNotNull { item ->
-                                        channelDao.byRemoteId(activeProvider.id, item.remoteId)
-                                    }
-                                    .toList()
-                                    .ifEmpty { listOf(current) }
+                                val resolvedQueue = mutableListOf<com.ultratv.tv.nativeapp.data.db.ChannelEntity>()
+                                for (item in liveHistory) {
+                                    channelDao.byRemoteId(activeProvider.id, item.remoteId)
+                                        ?.let(resolvedQueue::add)
+                                }
+                                val queue = resolvedQueue.ifEmpty { listOf(current) }
                                 val resolved = providerRepo.resolvePlayUrl(current.id, current.streamUrl)
                                 zapQueue.set(queue, current)
                                 playback.set(

@@ -20,9 +20,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -117,9 +124,16 @@ fun OnboardingWizard(
     val show by vm.show.collectAsState()
     val focusManager = LocalFocusManager.current
     val view = LocalView.current
+    val usernameFocus = androidx.compose.runtime.remember { FocusRequester() }
+    val passwordFocus = androidx.compose.runtime.remember { FocusRequester() }
+    val signInFocus = androidx.compose.runtime.remember { FocusRequester() }
 
     LaunchedEffect(show) {
-        if (!show) {
+        if (show) {
+            // Let the TV focus tree settle before making the first control obvious.
+            kotlinx.coroutines.delay(120)
+            runCatching { usernameFocus.requestFocus() }
+        } else {
             focusManager.clearFocus(force = true)
             val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
             imm?.hideSoftInputFromWindow(view.windowToken, 0)
@@ -131,6 +145,7 @@ fun OnboardingWizard(
     val message by vm.message.collectAsState()
     var username = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
     var password = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf("") }
+    val canSignIn = !syncing && username.value.isNotBlank() && password.value.isNotBlank()
 
     Box(
         modifier = Modifier
@@ -183,23 +198,45 @@ fun OnboardingWizard(
                 label = "Username",
                 value = username.value,
                 onChange = { username.value = it },
+                focusRequester = usernameFocus,
+                onDpadDown = { passwordFocus.requestFocus() },
             )
             FormField(
                 label = "Password",
                 value = password.value,
                 onChange = { password.value = it },
                 password = true,
+                focusRequester = passwordFocus,
+                onDpadUp = { usernameFocus.requestFocus() },
+                onDpadDown = {
+                    if (canSignIn) signInFocus.requestFocus()
+                },
             )
 
             Button(
                 onClick = { vm.signIn(username.value, password.value) },
-                enabled = !syncing && username.value.isNotBlank() && password.value.isNotBlank(),
+                enabled = canSignIn,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = 8.dp)
+                    .focusRequester(signInFocus)
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.DirectionUp) {
+                            passwordFocus.requestFocus()
+                            true
+                        } else false
+                    },
             ) {
                 Text(if (syncing) "LOADING…" else "SIGN IN", fontWeight = FontWeight.Bold)
             }
+
+            Text(
+                text = "↑  ↓  Move    •    OK  Select",
+                color = Color(0xFF777E89),
+                fontSize = 11.sp,
+                letterSpacing = 0.5.sp,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             message?.let {
                 Text(

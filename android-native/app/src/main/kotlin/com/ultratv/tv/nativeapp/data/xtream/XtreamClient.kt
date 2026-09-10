@@ -47,7 +47,7 @@ class XtreamClient @Inject constructor(private val ok: OkHttpClient) {
      * accepting bad credentials and showing an empty library.
      */
     suspend fun validateCredentials(p: ProviderEntity) {
-        val body = get("${p.baseUrl}/player_api.php?username=${p.username.urlEnc()}&password=${p.password.urlEnc()}")
+        val body = get("${p.baseUrl}/player_api.php?username=${p.username.urlEnc()}&password=${p.password.urlEnc()}&action=get_account_info")
         val root = runCatching { json.parseToJsonElement(body) as? JsonObject }.getOrNull()
             ?: error("Invalid response from Fleezy server")
         val info = root["user_info"] as? JsonObject

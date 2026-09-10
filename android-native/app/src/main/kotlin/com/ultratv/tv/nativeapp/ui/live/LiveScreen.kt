@@ -357,6 +357,7 @@ fun LiveScreen(onPlay: (url: String, title: String) -> Unit, vm: LiveViewModel =
                 vm.createMyGroup(name, ch)
                 groupDialogChannel = null
             },
+            onDelete = { groupId -> vm.deleteMyGroup(groupId) },
             onDismiss = { groupDialogChannel = null },
         )
     }
@@ -414,14 +415,37 @@ private fun MyGroupsDialog(
     memberships: Set<MyGroupMember>,
     onToggle: (groupId: String, member: Boolean) -> Unit,
     onCreate: (name: String) -> Unit,
+    onDelete: (groupId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var newGroupName by remember(channel.id) { mutableStateOf("") }
+    var pendingDelete by remember(channel.id) { mutableStateOf<MyGroup?>(null) }
     val memberGroupIds = remember(memberships, channel.providerId, channel.remoteId) {
         memberships.asSequence()
             .filter { it.providerId == channel.providerId && it.remoteId == channel.remoteId }
             .map { it.groupId }
             .toSet()
+    }
+
+    val deleteTarget = pendingDelete
+    if (deleteTarget != null) {
+        com.ultratv.tv.nativeapp.ui.settings.AddProviderDialog(
+            title = "Delete " + deleteTarget.name + "?",
+            onDismiss = { pendingDelete = null },
+            onSubmit = {
+                onDelete(deleteTarget.id)
+                pendingDelete = null
+            },
+            canSubmit = true,
+            submitLabel = "Delete group",
+        ) {
+            Text(
+                "This only removes your personal group. It does not delete channels or change the Fleezy/IPTVBoss lineup.",
+                color = UltraTokens.Fg3,
+                fontSize = 13.sp,
+            )
+        }
+        return
     }
 
     com.ultratv.tv.nativeapp.ui.settings.AddProviderDialog(
@@ -446,30 +470,52 @@ private fun MyGroupsDialog(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 groups.forEach { group ->
                     val isMember = group.id in memberGroupIds
-                    Card(
-                        onClick = { onToggle(group.id, !isMember) },
-                        shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
-                        colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
-                            containerColor = if (isMember) UltraTokens.AccentSoft else UltraTokens.Surface2,
-                            focusedContainerColor = UltraTokens.Accent,
-                            focusedContentColor = Color.White,
-                        ),
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
+                        Card(
+                            onClick = { onToggle(group.id, !isMember) },
+                            modifier = Modifier.weight(1f),
+                            shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
+                            colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
+                                containerColor = if (isMember) UltraTokens.AccentSoft else UltraTokens.Surface2,
+                                focusedContainerColor = UltraTokens.Accent,
+                                focusedContentColor = Color.White,
+                            ),
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    if (isMember) "✓" else "○",
+                                    color = if (isMember) UltraTokens.Accent else UltraTokens.Fg4,
+                                    fontSize = 15.sp,
+                                    modifier = Modifier.width(28.dp),
+                                )
+                                Text(
+                                    group.name,
+                                    color = if (isMember) UltraTokens.Fg else UltraTokens.Fg2,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isMember) FontWeight.SemiBold else FontWeight.Normal,
+                                )
+                            }
+                        }
+                        Card(
+                            onClick = { pendingDelete = group },
+                            shape = CardDefaults.shape(RoundedCornerShape(8.dp)),
+                            colors = com.ultratv.tv.nativeapp.ui.theme.ultraCardColors(
+                                containerColor = UltraTokens.Surface2,
+                                focusedContainerColor = UltraTokens.AccentSoft,
+                            ),
                         ) {
                             Text(
-                                if (isMember) "✓" else "○",
-                                color = if (isMember) UltraTokens.Accent else UltraTokens.Fg4,
-                                fontSize = 15.sp,
-                                modifier = Modifier.width(28.dp),
-                            )
-                            Text(
-                                group.name,
-                                color = if (isMember) UltraTokens.Fg else UltraTokens.Fg2,
-                                fontSize = 14.sp,
-                                fontWeight = if (isMember) FontWeight.SemiBold else FontWeight.Normal,
+                                "Delete",
+                                color = UltraTokens.Fg3,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 11.dp),
                             )
                         }
                     }

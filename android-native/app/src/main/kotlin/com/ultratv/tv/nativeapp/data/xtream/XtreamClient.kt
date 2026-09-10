@@ -214,18 +214,27 @@ class XtreamClient @Inject constructor(private val ok: OkHttpClient) {
     private fun JsonElement.str(): String? = (this as? JsonPrimitive)?.contentOrNull
 
     private suspend fun get(url: String): String = withContext(Dispatchers.IO) {
+        val requestLabel = Regex("[?&]action=([^&]+)").find(url)?.groupValues?.getOrNull(1) ?: "account"
         repeat(3) { attempt ->
-            ok.newCall(Request.Builder().url(url).build()).execute().use { resp ->
+            val request = Request.Builder()
+                .url(url)
+                // Some Xtream/relay servers gate API access by player User-Agent.
+                // Smarters is already confirmed against the IPTV Boss XC test endpoint,
+                // so present the same widely-supported player identity for API calls.
+                .header("User-Agent", "IPTVSmartersPro")
+                .header("Accept", "*/*")
+                .build()
+            ok.newCall(request).execute().use { resp ->
                 if (resp.isSuccessful) {
                     return@withContext resp.body?.string().orEmpty()
                 }
 
-                // Strong8K can occasionally answer rapid Xtream API bursts with
+                // Some Xtream servers can occasionally answer rapid API bursts with
                 // HTTP 513 even though the same account/endpoints are healthy.
                 // Retry only that transient status; fail immediately on all
                 // normal authentication/network errors.
                 if (resp.code != 513 || attempt == 2) {
-                    error("Server returned HTTP ${resp.code}")
+                    error("Server returned HTTP ${resp.code} during $requestLabel")
                 }
             }
             kotlinx.coroutines.delay(500L * (attempt + 1))

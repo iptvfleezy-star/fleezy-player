@@ -173,9 +173,7 @@ interface EpisodeDao {
 
 @Dao
 interface CategoryDao {
-    @Query("SELECT * FROM category WHERE providerId = :pid AND kind = :kind ORDER BY name")
-    fun observeForProviderKind(pid: Long, kind: String): Flow<List<CategoryEntity>>
-
+    // Categories are deleted and re-inserted in the exact order supplied by\n    // Xtream/IPTVBoss (and the other provider parsers). Preserve that insertion\n    // order so Fleezy does not silently alphabetize the customer-facing layout.\n    @Query("SELECT * FROM category WHERE providerId = :pid AND kind = :kind ORDER BY id ASC")\n    fun observeForProviderKind(pid: Long, kind: String): Flow<List<CategoryEntity>>\n
     @Query("UPDATE category SET locked = :locked WHERE id = :id")
     suspend fun setLocked(id: Long, locked: Boolean)
 
